@@ -210,7 +210,7 @@
             object-fit: contain;
             display: block;
         }
-        
+
 
 
         /* ===== 텍스트/칩/메타 (사각 요소 일관성) ===== */
@@ -354,7 +354,7 @@
                 </nav>
                 <div class="sound">
                     <button id="soundToggle" aria-pressed="false">🔊 Sound (On)</button>
-                    <audio id="bgm" preload="auto" autoplay loop playsinline src="audio/temp.mp3"></audio>
+                    <audio id="bgm" preload="auto" autoplay loop playsinline src="audio/temp.m4a"></audio>
                 </div>
             </div>
         </div>
@@ -406,14 +406,30 @@
         </section>
     </main>
 
-    <!-- ===== BGM (기존 로직 유지) ===== -->
     <script>
-        (function BGM() {
+        /* MOODIARY — Global BGM (m4a, 이어듣기/음소거 상태 유지) */
+        (function () {
             const audio = document.getElementById('bgm');
             const btn = document.getElementById('soundToggle');
-            const STATE_KEY = 'moodiary_bgm_state', POS_KEY = 'moodiary_bgm_pos', VOL_KEY = 'moodiary_bgm_vol';
-            function setBtn(on) { btn.textContent = on ? '🔊 Sound (On)' : '🔈 Sound (Off)'; btn.setAttribute('aria-pressed', on); }
 
+            if (!audio || !btn) return;
+
+            // ✅ 모든 페이지에서 같은 키를 씁니다 (이미 쓰던 키와 호환)
+            const STATE_KEY = 'moodiary_bgm_state'; // 'on' | 'off'
+            const POS_KEY = 'moodiary_bgm_pos';   // 재생 위치(초)
+            const VOL_KEY = 'moodiary_bgm_vol';   // 0.0 ~ 1.0
+
+            // ✅ 파일 강제 통일
+            const DESIRED_SRC = 'audio/temp.m4a';
+            if (audio.getAttribute('src') !== DESIRED_SRC) audio.setAttribute('src', DESIRED_SRC);
+
+            // 버튼 라벨 동기화
+            function setBtn(on) {
+                btn.textContent = on ? '🔊 Sound (On)' : '🔈 Sound (Off)';
+                btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            }
+
+            // 부드러운 볼륨 페이드
             const fps = 60;
             function fadeTo(target = 0.35, ms = 800) {
                 target = Math.max(0, Math.min(1, target));
@@ -421,58 +437,142 @@
                 const t = setInterval(() => {
                     audio.volume = Math.max(0, Math.min(1, audio.volume + step));
                     if ((step > 0 && audio.volume >= target) || (step < 0 && audio.volume <= target)) {
-                        clearInterval(t); localStorage.setItem(VOL_KEY, String(audio.volume));
+                        clearInterval(t);
+                        localStorage.setItem(VOL_KEY, String(audio.volume));
                     }
                 }, 1000 / fps);
             }
+
             async function tryPlay() {
                 try {
                     audio.muted = false;
                     audio.volume = parseFloat(localStorage.getItem(VOL_KEY) || '0.30');
-                    await audio.play(); setBtn(true); fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700);
+                    await audio.play();
+                    setBtn(true);
+                    fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700);
                 } catch (e) {
+                    // 첫 사용자 제스처 전 자동재생이 막힌 경우: 한 번만 탭 이벤트로 언락
                     setBtn(false);
                     const unlock = async () => {
-                        try { await audio.play(); setBtn(true); fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700); } catch { }
-                        finally { window.removeEventListener('pointerdown', unlock, { once: true }); }
+                        try {
+                            await audio.play();
+                            setBtn(true);
+                            fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700);
+                        } catch { }
+                        finally {
+                            window.removeEventListener('pointerdown', unlock, { once: true });
+                        }
                     };
                     window.addEventListener('pointerdown', unlock, { once: true });
                 }
             }
+
+            // ▶ 새 페이지에서 재생 위치 복원(이어듣기 핵심)
             audio.addEventListener('loadedmetadata', () => {
                 const pos = parseFloat(localStorage.getItem(POS_KEY) || '0');
-                if (isFinite(pos) && pos > 0 && (!isFinite(audio.duration) || pos < audio.duration - 0.4)) { audio.currentTime = pos; }
+                if (isFinite(pos) && pos > 0 && (!isFinite(audio.duration) || pos < audio.duration - 0.4)) {
+                    audio.currentTime = pos;
+                }
             });
-            const savePos = () => { if (isFinite(audio.currentTime)) localStorage.setItem(POS_KEY, String(audio.currentTime)); };
-            setInterval(savePos, 1000); window.addEventListener('pagehide', savePos);
 
+            // ▶ 0.7초마다, 그리고 페이지 떠날 때 현재 위치 저장
+            const savePos = () => {
+                if (isFinite(audio.currentTime)) localStorage.setItem(POS_KEY, String(audio.currentTime));
+            };
+            const posTimer = setInterval(savePos, 700);
+            window.addEventListener('pagehide', savePos);
+
+            // ▶ 버튼 토글: 상태를 localStorage에 저장 → 다음 페이지에도 그대로 반영
             btn.addEventListener('click', async () => {
-                if (audio.paused) { localStorage.setItem(STATE_KEY, 'on'); await tryPlay(); }
-                else { audio.pause(); setBtn(false); localStorage.setItem(STATE_KEY, 'off'); }
+                if (audio.paused) {
+                    localStorage.setItem(STATE_KEY, 'on');
+                    await tryPlay();
+                } else {
+                    audio.pause();
+                    setBtn(false);
+                    localStorage.setItem(STATE_KEY, 'off');
+                }
             });
 
-            if ((localStorage.getItem(STATE_KEY) ?? 'on') === 'on') { tryPlay(); } else { setBtn(false); }
+            // ▶ 첫 진입 시 상태/위치 반영
+            if ((localStorage.getItem(STATE_KEY) ?? 'on') === 'on') {
+                tryPlay();
+            } else {
+                setBtn(false);
+            }
+
+            // ▶ 탭을 다시 볼 때, 켜두었는데 멈춰 있으면 즉시 재개
             document.addEventListener('visibilitychange', () => {
-                if (!document.hidden && localStorage.getItem(STATE_KEY) === 'on' && audio.paused) { tryPlay(); }
+                if (!document.hidden && localStorage.getItem(STATE_KEY) === 'on' && audio.paused) {
+                    tryPlay();
+                }
             });
         })();
     </script>
 
+
     <!-- ===== Detail Loader (캡션 제거 반영) ===== -->
     <script>
         const FLOWERS = [
-            { slug: 'hydrangea', en: 'HYDRANGEA', ko: '수국', emotions: '감사 · 진심 · 변화', symbolism: '감사, 진심, 변덕', img: 'img/flowers2/hydrangea2.svg', desc: '다채로운 색 변화로 감정의 스펙트럼을 비유하는 꽃. 마음의 변화와 솔직함을 기록에 남기기에 어울립니다.' },
-            { slug: 'babybreath', en: "BABY'S BREATH", ko: '안개꽃', emotions: '순수 · 응원 · 위로', symbolism: '순수, 영원, 배려', img: 'img/flowers2/babybreath2.svg', desc: '작고 많은 꽃들이 모여 은은한 존재감을 만드는 안개꽃은 일상의 작은 행복과 지속적인 응원을 상징합니다.' },
-            { slug: 'lavender', en: 'LAVENDER', ko: '라벤더', emotions: '휴식 · 안정 · 집중', symbolism: '평온, 헌신', img: 'img/flowers2/lavender2.svg', desc: '향기만으로도 마음을 안정시키는 라벤더는 휴식과 몰입의 순간을 기록하기 좋습니다.' },
-            { slug: 'freesia', en: 'FREESIA', ko: '프리지아', emotions: '설렘 · 시작 · 고마움', symbolism: '순수, 신뢰', img: 'img/flowers2/freesia2.svg', desc: '밝은 색감과 향의 프리지아는 새로운 시작과 설렘, 그리고 고마운 마음을 전하기에 알맞습니다.' },
-            { slug: 'daisy', en: 'DAISY', ko: '데이지', emotions: '기쁨 · 솔직함 · 맑음', symbolism: '순진무구, 희망', img: 'img/flowers2/daisy2.svg', desc: '햇살 같은 소박함을 가진 데이지는 맑고 투명한 기분을 담아내기 좋습니다.' },
-            { slug: 'white-lily', en: 'WHITE LILY', ko: '흰 백합', emotions: '존중 · 숭고함 · 위엄', symbolism: '순결, 고결', img: 'img/flowers2/white-lily2.svg', desc: '정제된 아름다움의 상징. 마음가짐을 다잡고 싶은 날의 기록과 잘 어울립니다.' },
-            { slug: 'lilac', en: 'LILAC', ko: '라일락', emotions: '그리움 · 봄기운 · 포근함', symbolism: '우정, 추억', img: 'img/flowers2/lilac2.svg', desc: '스치듯 찾아오는 추억과 계절의 향기를 담은 라일락은 아련한 감정을 표현합니다.' },
-            { slug: 'white-tulip', en: 'WHITE TULIP', ko: '흰 튤립', emotions: '응원 · 담백함 · 다짐', symbolism: '순수, 용서', img: 'img/flowers2/white-tulip2.svg', desc: '담백한 아름다움으로 응원의 메시지를 전하는 흰 튤립은 새로운 다짐과도 어울립니다.' },
-            { slug: 'sunflower', en: 'SUNFLOWER', ko: '해바라기', emotions: '행복 · 충실 · 에너지', symbolism: '동경, 충성', img: 'img/flowers2/sunflower2.svg', desc: '태양을 향하는 꾸준함처럼, 목표와 에너지를 채우고 싶은 날에 적합합니다.' },
-            { slug: 'peony', en: 'PEONY', ko: '작약', emotions: '풍요 · 축복 · 따뜻함', symbolism: '부, 번영', img: 'img/flowers2/peony2.svg', desc: '풍성한 꽃송이는 축복과 풍요를 상징합니다. 감사가 가득한 날에 사용해보세요.' },
-            { slug: 'forgetmenot', en: 'FORGET-ME-NOT', ko: '물망초', emotions: '기억 · 연결 · 소중함', symbolism: '진실한 사랑, 추억', img: 'img/flowers2/forgetmenot2.svg', desc: '작지만 선명한 존재감으로 소중한 인연을 기억하게 합니다.' },
-            { slug: 'lotus', en: 'LOTUS', ko: '연꽃', emotions: '회복 · 성찰 · 평온', symbolism: '청정, 재생', img: 'img/flowers2/lotus2.svg', desc: '흙탕물에서도 맑게 피어나는 연꽃은 회복과 성찰의 시간을 상징합니다.' }
+            {
+                slug: 'hydrangea', en: 'HYDRANGEA', ko: '수국', emotions: '감사 · 진심 · 변화', symbolism: '감사, 진심, 변덕', img: 'img/flowers2/hydrangea2.svg',
+                desc: '작은 꽃송이들이 모여 둥글게 피는 수국은 ‘감사’와 ‘진심’을 상징해요. 기쁨이 쌓여 더 큰 행복이 되고, 주변과 나누며 깊어지는 감정을 표현합니다.'
+            },
+
+            {
+                slug: 'babybreath', en: "BABY'S BREATH", ko: '안개꽃', emotions: '순수 · 응원 · 위로', symbolism: '순수, 영원, 배려', img: 'img/flowers2/babybreath2.svg',
+                desc: '가는 줄기 위에 촘촘히 피어난 안개꽃은 ‘순수한 사랑’과 ‘변치 않는 마음’을 상징해요. 설렘의 순간이 잔잔한 기대감으로 이어지도록 도와줍니다.'
+            },
+
+            {
+                slug: 'lavender', en: 'LAVENDER', ko: '라벤더', emotions: '휴식 · 안정 · 집중', symbolism: '평온, 헌신', img: 'img/flowers2/lavender2.svg',
+                desc: '라벤더는 은은한 향기와 보랏빛으로 ‘평온’과 ‘정서적 안정’을 의미해요. 마음의 긴장을 풀어주고 차분한 상태를 유지하게 해줍니다.'
+            },
+
+            {
+                slug: 'freesia', en: 'FREESIA', ko: '프리지아', emotions: '설렘 · 시작 · 고마움', symbolism: '순수, 신뢰', img: 'img/flowers2/freesia2.svg',
+                desc: '부드럽고 따뜻한 색감의 프리지아는 ‘위로’와 ‘새 출발’을 상징해요. 상실감과 슬픔 속에서도 다시 걸어 나갈 수 있는 희망을 전해줍니다.'
+            },
+
+            {
+                slug: 'daisy', en: 'DAISY', ko: '데이지', emotions: '기쁨 · 솔직함 · 맑음', symbolism: '순진무구, 희망', img: 'img/flowers2/daisy2.svg',
+                desc: '데이지는 단순하고 밝은 형태로 ‘순수한 우정’과 ‘희망’을 뜻해요. 외로운 마음을 포근하게 감싸주며, 사람과 다시 연결될 수 있는 가능성을 느끼게 해줍니다.'
+            },
+
+            {
+                slug: 'white-lily', en: 'WHITE LILY', ko: '흰 백합', emotions: '존중 · 숭고함 · 위엄', symbolism: '순결, 고결', img: 'img/flowers2/white-lily2.svg',
+                desc: '흰 백합은 ‘순수함’과 ‘정화’를 상징해요. 격해진 감정을 조용히 가라앉히고, 내면의 균형을 되찾을 수 있도록 도와줍니다.'
+            },
+
+            {
+                slug: 'lilac', en: 'LILAC', ko: '라일락', emotions: '그리움 · 봄기운 · 포근함', symbolism: '우정, 추억', img: 'img/flowers2/lilac2.svg',
+                desc: '라일락은 ‘휴식’과 ‘영혼의 안정’을 의미하며, 향기와 색이 지친 몸과 마음을 편안하게 감싸줍니다. 회복과 쉼을 상징하는 꽃이에요.'
+            },
+
+            {
+                slug: 'white-tulip', en: 'WHITE TULIP', ko: '흰 튤립', emotions: '응원 · 담백함 · 다짐', symbolism: '순수, 용서', img: 'img/flowers2/white-tulip2.svg',
+                desc: '하얀 튤립은 ‘용기’, ‘새로운 시작’을 상징해요. 불안한 감정 속에서도 부드럽게 위로해주며, 앞으로 나아갈 수 있는 힘을 북돋아줍니다.'
+            },
+
+            {
+                slug: 'sunflower', en: 'SUNFLOWER', ko: '해바라기', emotions: '행복 · 충실 · 에너지', symbolism: '동경, 충성', img: 'img/flowers2/sunflower2.svg',
+                desc: '태양을 향해 피어나는 해바라기는 ‘긍정’, ‘존경’, ‘감사’를 의미해요. 밝고 활기찬 감정에 에너지를 더하고, 감사한 마음을 전하는 데 적합합니다.'
+            },
+
+            {
+                slug: 'peony', en: 'PEONY', ko: '작약', emotions: '풍요 · 축복 · 따뜻함', symbolism: '부, 번영', img: 'img/flowers2/peony2.svg',
+                desc: '풍성하고 화려한 작약은 ‘행복한 삶’과 ‘깊은 애정’을 상징해요. 과거의 후회를 따뜻하게 감싸며, 스스로를 받아들이고 성장할 수 있는 용기를 줍니다.'
+            },
+
+            {
+                slug: 'forgetmenot', en: 'FORGET-ME-NOT', ko: '물망초', emotions: '기억 · 연결 · 소중함', symbolism: '진실한 사랑, 추억', img: 'img/flowers2/forgetmenot2.svg',
+                desc: '작고 파란 물망초는 ‘진실한 사랑’과 ‘기억’을 뜻해요. 떠난 것에 대한 아픔을 인정하고, 소중한 기억으로 간직할 수 있게 도와줍니다.'
+            },
+
+            {
+                slug: 'lotus', en: 'LOTUS', ko: '연꽃', emotions: '회복 · 성찰 · 평온', symbolism: '청정, 재생', img: 'img/flowers2/lotus2.svg',
+                desc: '진흙 속에서도 맑고 깨끗하게 피는 연꽃은 ‘청정’, ‘극복’, ‘내면의 평화’를 상징해요. 복잡하고 흔들리는 마음을 정리하고 중심을 잡게 해줍니다.'
+            }
         ];
 
         const order = FLOWERS.map(f => f.slug);
@@ -542,6 +642,49 @@
                 c.style.transform = `translate(${tx}px, ${ty}px) translate(-50%,-50%)`;
                 requestAnimationFrame(loop);
             })();
+        })();
+    </script>
+    <script>
+        /* SPA: 이전/다음 클릭 시 페이지 리로드 없이 내용만 갱신 */
+        (function SPAFlowerDetail() {
+            const prevEl = document.getElementById('f-prev');
+            const nextEl = document.getElementById('f-next');
+            const titleEl = document.getElementById('f-title');
+
+            // 현재 slug로 화면 갱신 + URL 동기화
+            function go(slug, { push = true } = {}) {
+                const data = getData(slug);
+                render(data);
+
+                // 주소 표시줄만 업데이트 (페이지 리로드 없음)
+                if (push) history.pushState({ slug }, '', `?flower=${encodeURIComponent(slug)}`);
+
+                // 접근성/UX: 제목에 포커스 줘서 스크롤 튐 없이 컨텍스트 알리기
+                titleEl.setAttribute('tabindex', '-1');
+                titleEl.focus({ preventScroll: true });
+            }
+
+            // 공통 클릭 핸들러
+            function onClickNav(e) {
+                e.preventDefault();
+                const url = new URL(e.currentTarget.href, location.href);
+                const slug = url.searchParams.get('flower') || order[0];
+                go(slug, { push: true });
+            }
+
+            // 이전/다음 버튼에 SPA 내비게이션 연결
+            prevEl.addEventListener('click', onClickNav);
+            nextEl.addEventListener('click', onClickNav);
+
+            // 브라우저 뒤로가기/앞으로가기 대응
+            window.addEventListener('popstate', (e) => {
+                const slug = (e.state && e.state.slug) || (new URLSearchParams(location.search).get('flower')) || order[0];
+                go(slug, { push: false });
+            });
+
+            // 초기 상태를 history에 기록 (중복 렌더 방지: render는 기존 코드에서 한 번 실행됨)
+            const initial = (new URLSearchParams(location.search).get('flower')) || order[0];
+            history.replaceState({ slug: initial }, '', location.href);
         })();
     </script>
 

@@ -220,24 +220,26 @@
             display: flex
         }
 
-        /* 좌우 패널 여백/높이 정리 */
         .left .panel,
         .right .panel {
             position: relative;
             height: calc(100% - 100px);
-            margin: 50px;
+            margin: 50px 100px;
+            /* 상하 50px, 좌우 70px */
             display: flex;
             flex-direction: column;
-
-            /* 배경 이미지 꽉 채우기 (잘림 없음, 왜곡 가능) */
+            padding: 24px;
+            /* 좌우만 24px */
             background-size: 100% 100%;
             background-position: center;
             background-repeat: no-repeat;
         }
 
+
         /* LEFT — 카드 프리뷰 영역 */
         .left .panel-body {
-            overflow: hidden
+            overflow: hidden;
+            padding-inline: 24px;
         }
 
         /* 카드+설명 묶음을 중앙 정렬 */
@@ -576,7 +578,7 @@
                 </nav>
                 <div class="sound">
                     <button id="soundToggle" aria-pressed="false">🔊 Sound (On)</button>
-                    <audio id="bgm" preload="auto" autoplay loop playsinline src="audio/temp.mp3"></audio>
+                    <audio id="bgm" preload="auto" autoplay loop playsinline src="audio/temp.m4a"></audio>
                 </div>
             </div>
         </div>
@@ -639,36 +641,112 @@
     <div class="background-decor" id="backgroundDecor"></div>
 
     <script>
-        function stampCardTime(date) { const store = readTodayStore(); const prev = store[date] || { date }; prev.cardCreatedAt = Date.now(); store[date] = prev; writeTodayStore(store); }
-
-        /* BGM */
+        /* MOODIARY — Global BGM (m4a, 이어듣기/음소거 상태 유지) */
         (function () {
-            const audio = document.getElementById('bgm'), btn = document.getElementById('soundToggle');
-            const STATE_KEY = 'moodiary_bgm_state', POS_KEY = 'moodiary_bgm_pos', VOL_KEY = 'moodiary_bgm_vol';
-            function setBtn(on) { btn.textContent = on ? '🔊 Sound (On)' : '🔈 Sound (Off)'; btn.setAttribute('aria-pressed', on) }
+            const audio = document.getElementById('bgm');
+            const btn = document.getElementById('soundToggle');
+
+            if (!audio || !btn) return;
+
+            // ✅ 모든 페이지에서 같은 키를 씁니다 (이미 쓰던 키와 호환)
+            const STATE_KEY = 'moodiary_bgm_state'; // 'on' | 'off'
+            const POS_KEY = 'moodiary_bgm_pos';   // 재생 위치(초)
+            const VOL_KEY = 'moodiary_bgm_vol';   // 0.0 ~ 1.0
+
+            // ✅ 파일 강제 통일
+            const DESIRED_SRC = 'audio/temp.m4a';
+            if (audio.getAttribute('src') !== DESIRED_SRC) audio.setAttribute('src', DESIRED_SRC);
+
+            // 버튼 라벨 동기화
+            function setBtn(on) {
+                btn.textContent = on ? '🔊 Sound (On)' : '🔈 Sound (Off)';
+                btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            }
+
+            // 부드러운 볼륨 페이드
             const fps = 60;
-            function fadeTo(target = .35, ms = 800) {
+            function fadeTo(target = 0.35, ms = 800) {
                 target = Math.max(0, Math.min(1, target));
                 const step = (target - audio.volume) / (ms / (1000 / fps));
                 const t = setInterval(() => {
                     audio.volume = Math.max(0, Math.min(1, audio.volume + step));
-                    if ((step > 0 && audio.volume >= target) || (step < 0 && audio.volume <= target)) { clearInterval(t); localStorage.setItem(VOL_KEY, String(audio.volume)); }
+                    if ((step > 0 && audio.volume >= target) || (step < 0 && audio.volume <= target)) {
+                        clearInterval(t);
+                        localStorage.setItem(VOL_KEY, String(audio.volume));
+                    }
                 }, 1000 / fps);
             }
+
             async function tryPlay() {
-                try { audio.muted = false; audio.volume = parseFloat(localStorage.getItem(VOL_KEY) || '0.30'); await audio.play(); setBtn(true); fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700); }
-                catch { setBtn(false); const unlock = async () => { try { await audio.play(); setBtn(true); fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700); } catch { } finally { window.removeEventListener('pointerdown', unlock, { once: true }); } }; window.addEventListener('pointerdown', unlock, { once: true }); }
+                try {
+                    audio.muted = false;
+                    audio.volume = parseFloat(localStorage.getItem(VOL_KEY) || '0.30');
+                    await audio.play();
+                    setBtn(true);
+                    fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700);
+                } catch (e) {
+                    // 첫 사용자 제스처 전 자동재생이 막힌 경우: 한 번만 탭 이벤트로 언락
+                    setBtn(false);
+                    const unlock = async () => {
+                        try {
+                            await audio.play();
+                            setBtn(true);
+                            fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700);
+                        } catch { }
+                        finally {
+                            window.removeEventListener('pointerdown', unlock, { once: true });
+                        }
+                    };
+                    window.addEventListener('pointerdown', unlock, { once: true });
+                }
             }
+
+            // ▶ 새 페이지에서 재생 위치 복원(이어듣기 핵심)
             audio.addEventListener('loadedmetadata', () => {
                 const pos = parseFloat(localStorage.getItem(POS_KEY) || '0');
-                if (isFinite(pos) && pos > 0 && (!isFinite(audio.duration) || pos < audio.duration - 0.4)) { audio.currentTime = pos; }
+                if (isFinite(pos) && pos > 0 && (!isFinite(audio.duration) || pos < audio.duration - 0.4)) {
+                    audio.currentTime = pos;
+                }
             });
-            const savePos = () => { if (isFinite(audio.currentTime)) localStorage.setItem(POS_KEY, String(audio.currentTime)); };
-            setInterval(savePos, 1000); window.addEventListener('pagehide', savePos);
-            btn.addEventListener('click', async () => { if (audio.paused) { localStorage.setItem(STATE_KEY, 'on'); await tryPlay(); } else { audio.pause(); setBtn(false); localStorage.setItem(STATE_KEY, 'off'); } });
-            if ((localStorage.getItem(STATE_KEY) ?? 'on') === 'on') tryPlay(); else setBtn(false);
-            document.addEventListener('visibilitychange', () => { if (!document.hidden && localStorage.getItem(STATE_KEY) === 'on' && audio.paused) tryPlay(); });
+
+            // ▶ 0.7초마다, 그리고 페이지 떠날 때 현재 위치 저장
+            const savePos = () => {
+                if (isFinite(audio.currentTime)) localStorage.setItem(POS_KEY, String(audio.currentTime));
+            };
+            const posTimer = setInterval(savePos, 700);
+            window.addEventListener('pagehide', savePos);
+
+            // ▶ 버튼 토글: 상태를 localStorage에 저장 → 다음 페이지에도 그대로 반영
+            btn.addEventListener('click', async () => {
+                if (audio.paused) {
+                    localStorage.setItem(STATE_KEY, 'on');
+                    await tryPlay();
+                } else {
+                    audio.pause();
+                    setBtn(false);
+                    localStorage.setItem(STATE_KEY, 'off');
+                }
+            });
+
+            // ▶ 첫 진입 시 상태/위치 반영
+            if ((localStorage.getItem(STATE_KEY) ?? 'on') === 'on') {
+                tryPlay();
+            } else {
+                setBtn(false);
+            }
+
+            // ▶ 탭을 다시 볼 때, 켜두었는데 멈춰 있으면 즉시 재개
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden && localStorage.getItem(STATE_KEY) === 'on' && audio.paused) {
+                    tryPlay();
+                }
+            });
         })();
+    </script>
+
+    <script>
+        function stampCardTime(date) { const store = readTodayStore(); const prev = store[date] || { date }; prev.cardCreatedAt = Date.now(); store[date] = prev; writeTodayStore(store); }
+
 
         /* 첫 진입 fresh */
         (function () {
@@ -822,26 +900,37 @@
         function writeTodayStore(obj) { localStorage.setItem('moodiary_today', JSON.stringify(obj)); }
         window.moodiaryGetToday = (d) => readTodayStore()[d] || null;
 
-        document.getElementById('saveToday').addEventListener('click', () => {
-            const store = JSON.parse(localStorage.getItem('moodiary_today') || '{}');
-            const date = new URL(location.href).searchParams.get('date');
+        (function () {
+            const z = n => String(n).padStart(2, '0');
+            const fmt = d => [d.getFullYear(), z(d.getMonth() + 1), z(d.getDate())].join('-');
 
-            store[date] = {
-                date,
-                oneLine: state.mood,
-                feeling: state.keyword?.label,
-                flowers: state.keyword
-                    ? [{ slug: state.keyword.slug, name: state.keyword.flower, img: `img/flowers2/${state.keyword.slug}2.svg` }]
-                    : [],
-                weather: state.weather ? state.weather.slug : null,
-                desc: state.keyword ? FLOWER_DESC[state.keyword.slug] : null
-            };
+            document.getElementById('saveToday').addEventListener('click', () => {
+                // 1) 오늘 날짜 구하기 (URL ?date 우선, 없으면 오늘)
+                const u = new URL(location.href);
+                const date = u.searchParams.get('date') || fmt(new Date());
 
-            localStorage.setItem('moodiary_today', JSON.stringify(store));
+                // 2) today 데이터 저장 (기존 로직 유지)
+                const store = JSON.parse(localStorage.getItem('moodiary_today') || '{}');
+                store[date] = {
+                    date,
+                    oneLine: state.mood,
+                    feeling: state.keyword?.label,
+                    flowers: state.keyword
+                        ? [{ slug: state.keyword.slug, name: state.keyword.flower, img: `img/flowers2/${state.keyword.slug}2.svg` }]
+                        : [],
+                    weather: state.weather ? state.weather.slug : null,
+                    desc: state.keyword ? FLOWER_DESC[state.keyword.slug] : null
+                };
+                localStorage.setItem('moodiary_today', JSON.stringify(store));
 
-            // ✅ day.html로 이동하면서 snap-day 해시 붙여 전달
-            location.href = `diary-loding.html?date=${encodeURIComponent(date)}#snap-day`;
-        });
+                // 3) ✅ day.html이 반드시 "해당 날짜" 초기화하도록 신호 남기기
+                localStorage.setItem(`moodiary_reset_diary_${date}`, '1'); // day.html이 읽어서 캡처/상태 삭제
+                localStorage.setItem(`moodiary_fresh_${date}`, '1');       // (보조 안전장치)
+
+                // 4) ✅ reset=1 파라미터도 함께 전달 (둘 중 하나만으로도 동작하지만 확실하게!)
+                location.href = `diary-loding.html?date=${encodeURIComponent(date)}&reset=1#snap-day`;
+            });
+        })();
 
 
         document.getElementById('goDiaryBtn').addEventListener('click', () => {
@@ -903,6 +992,7 @@
             }
         })();
     </script>
+    
 </body>
 
 </html>
