@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>꽃 카드 상세</title>
+
+    <!-- Fonts -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css"
+        crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --ink: #111;
+            --muted: #666;
+            --bg: #fff;
+            --header-h: 72px;
+            --side: clamp(18px, 3.8vw, 48px);
+            --chip: #fff;
+            --chip-b: #111;
+
+            /* today.html 사각 카드 변수 톤 */
+            --border-w: 1px;
+            --line: #111;
+            --radius: 0;
+            /* ← 사각 */
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: Pretendard, system-ui, -apple-system, BlinkMacSystemFont, Inter, sans-serif;
+            line-height: 1.6;
+        }
+
+        /* ===== Header ===== */
+        header.site {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            height: var(--header-h);
+            background: rgba(255, 255, 255, .9);
+            backdrop-filter: blur(6px);
+            border-bottom: 1px solid #eaeaea;
+        }
+
+        .wrap {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 var(--side);
+        }
+
+        .bar {
+            height: var(--header-h);
+            display: grid;
+            gap: 10px;
+            grid-template-columns: 140px 1fr auto auto;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .brand img {
+            width: 40px;
+            height: 40px;
+            display: block;
+            animation: float 2.4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        nav.main {
+            display: flex;
+            justify-content: flex-end;
+            gap: 22px;
+        }
+
+        nav.main a {
+            position: relative;
+            text-decoration: none;
+            color: var(--ink);
+            padding: 4px 2px;
+            font-weight: 500;
+        }
+
+        nav.main a::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -6px;
+            height: 2px;
+            background: currentColor;
+            transform: scaleX(0);
+            transform-origin: 0 50%;
+            transition: transform .25s;
+        }
+
+        /* hover시에만 밑줄 */
+        nav.main a:hover::after {
+            transform: scaleX(1);
+        }
+
+        .sound {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--muted);
+            margin-left: clamp(10px, 1.2vw, 18px);
+            /* flower.html과 동일 */
+        }
+
+        .sound button {
+            border: 1.25px solid #000;
+            border-radius: 0;
+            background: #fff;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background .25s ease, color .25s ease;
+        }
+
+        .sound button:hover {
+            background: #000;
+            color: #fff;
+        }
+
+
+        /* ===== Page ===== */
+        main.page {
+            max-width: 1040px;
+            margin: 0 auto;
+            padding: 24px var(--side) 64px;
+        }
+
+        .crumbs {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 13px;
+            color: #777;
+            margin: 110px 0 16px;
+        }
+
+        .crumbs a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .crumbs .sep {
+            opacity: .5
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(260px, 380px) 1fr;
+            gap: 28px;
+            align-items: center;
+        }
+
+        /* ——— 카드 테두리/박스 제거 ——— */
+        .hero-card {
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            overflow: visible;
+            /* 여백이 자연스럽게 */
+        }
+
+        /* 카드 내부도 배경 없이 깔끔하게 */
+        .hero-img {
+            background: transparent !important;
+            aspect-ratio: 1 / 1;
+            /* 1:1로 통일해 심미성 ↑ */
+            display: grid;
+            place-items: center;
+        }
+
+        /* SVG가 영역에 딱 맞게 보이도록 */
+        .hero-img img {
+            max-width: 100%;
+            max-height: 100%;
+            width: min(560px, 42vw);
+            /* 큰 화면에서 시원하게 */
+            height: auto;
+            object-fit: contain;
+            display: block;
+        }
+        
+
+
+        /* ===== 텍스트/칩/메타 (사각 요소 일관성) ===== */
+        .title {
+            font-family: 'Playfair Display', serif;
+            font-size: 34px;
+            letter-spacing: .3px;
+            margin: 0 0 6px;
+            color: #222;
+        }
+
+        .subtitle {
+            margin: 0 0 14px;
+            color: #666;
+            font-size: 15px;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 14px 0 10px;
+        }
+
+        .chip {
+            border: var(--border-w) solid var(--line);
+            background: #fff;
+            padding: 8px 10px;
+            border-radius: var(--radius);
+            font-size: 13px;
+        }
+
+        .desc {
+            margin-top: 10px;
+            color: #333;
+            font-size: 16px;
+            line-height: 1.75;
+        }
+
+        .meta {
+            margin-top: 22px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(200px, 1fr));
+            gap: 14px;
+        }
+
+        .meta dt {
+            font-weight: 700
+        }
+
+        .meta dd {
+            margin: 0;
+            color: #444
+        }
+
+        .nav-rows {
+            margin-top: 28px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: var(--border-w) solid var(--line);
+            background: #fff;
+            padding: 10px 14px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #111;
+            transition: background .2s, color .2s, transform .1s;
+            border-radius: var(--radius);
+        }
+
+        .btn:hover {
+            background: #000;
+            color: #fff;
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        /* 소형 화면 */
+        @media(max-width:900px) {
+            .hero {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+        }
+
+        /* === Custom Flower Cursor (same as index.html) === */
+        body {
+            cursor: none;
+        }
+
+        .flower-cursor {
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 9999;
+            pointer-events: none;
+            user-select: none;
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            font-size: 24px;
+            line-height: 1;
+            transform: translate(-50%, -50%);
+            filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .12));
+        }
+
+        .flower-cursor::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border: 2px solid #111;
+            border-radius: 999px;
+            box-sizing: border-box;
+        }
+
+        .flower-cursor.active {
+            font-size: 26px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="site">
+        <div class="wrap">
+            <div class="bar">
+                <a class="brand" href="index.html" aria-label="MOODIARY Home">
+                    <img src="img/sub-flower.svg" alt="MOODIARY 로고"><span>MOODIARY</span>
+                </a>
+                <div></div>
+                <nav class="main" aria-label="Main">
+                    <a href="today-loding.html">Today</a>
+                    <a href="diary-loding.html">Diary</a>
+                    <a href="flower-loding.html" class="active">Flower</a>
+                </nav>
+                <div class="sound">
+                    <button id="soundToggle" aria-pressed="false">🔊 Sound (On)</button>
+                    <audio id="bgm" preload="auto" autoplay loop playsinline src="audio/temp.mp3"></audio>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="page" aria-label="Flower Detail">
+        <nav class="crumbs" aria-label="breadcrumbs">
+            <a href="flower.html">Flower</a><span class="sep">›</span><span id="crumbLabel">Detail</span>
+        </nav>
+
+        <section class="hero">
+            <!-- today.html 톤의 사각 카드 (캡션 제거됨) -->
+            <div class="hero-card">
+                <div class="hero-img"><img id="f-img" alt=""></div>
+            </div>
+
+            <div>
+                <h1 class="title" id="f-title">FLOWER</h1>
+                <p class="subtitle" id="f-sub">—</p>
+
+                <div class="chips" id="f-chips"></div>
+                <div class="desc" id="f-desc"></div>
+
+                <dl class="meta">
+                    <div>
+                        <dt>영문명</dt>
+                        <dd id="f-en">—</dd>
+                    </div>
+                    <div>
+                        <dt>국문명</dt>
+                        <dd id="f-ko">—</dd>
+                    </div>
+                    <div>
+                        <dt>상징</dt>
+                        <dd id="f-sym">—</dd>
+                    </div>
+                    <div>
+                        <dt>연결 감정</dt>
+                        <dd id="f-emote">—</dd>
+                    </div>
+                </dl>
+
+                <div class="nav-rows">
+                    <a class="btn" href="flower.html">← 목록으로</a>
+                    <a class="btn" id="f-prev" href="#">〈 이전</a>
+                    <a class="btn" id="f-next" href="#">다음 〉</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ===== BGM (기존 로직 유지) ===== -->
+    <script>
+        (function BGM() {
+            const audio = document.getElementById('bgm');
+            const btn = document.getElementById('soundToggle');
+            const STATE_KEY = 'moodiary_bgm_state', POS_KEY = 'moodiary_bgm_pos', VOL_KEY = 'moodiary_bgm_vol';
+            function setBtn(on) { btn.textContent = on ? '🔊 Sound (On)' : '🔈 Sound (Off)'; btn.setAttribute('aria-pressed', on); }
+
+            const fps = 60;
+            function fadeTo(target = 0.35, ms = 800) {
+                target = Math.max(0, Math.min(1, target));
+                const step = (target - audio.volume) / (ms / (1000 / fps));
+                const t = setInterval(() => {
+                    audio.volume = Math.max(0, Math.min(1, audio.volume + step));
+                    if ((step > 0 && audio.volume >= target) || (step < 0 && audio.volume <= target)) {
+                        clearInterval(t); localStorage.setItem(VOL_KEY, String(audio.volume));
+                    }
+                }, 1000 / fps);
+            }
+            async function tryPlay() {
+                try {
+                    audio.muted = false;
+                    audio.volume = parseFloat(localStorage.getItem(VOL_KEY) || '0.30');
+                    await audio.play(); setBtn(true); fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700);
+                } catch (e) {
+                    setBtn(false);
+                    const unlock = async () => {
+                        try { await audio.play(); setBtn(true); fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700); } catch { }
+                        finally { window.removeEventListener('pointerdown', unlock, { once: true }); }
+                    };
+                    window.addEventListener('pointerdown', unlock, { once: true });
+                }
+            }
+            audio.addEventListener('loadedmetadata', () => {
+                const pos = parseFloat(localStorage.getItem(POS_KEY) || '0');
+                if (isFinite(pos) && pos > 0 && (!isFinite(audio.duration) || pos < audio.duration - 0.4)) { audio.currentTime = pos; }
+            });
+            const savePos = () => { if (isFinite(audio.currentTime)) localStorage.setItem(POS_KEY, String(audio.currentTime)); };
+            setInterval(savePos, 1000); window.addEventListener('pagehide', savePos);
+
+            btn.addEventListener('click', async () => {
+                if (audio.paused) { localStorage.setItem(STATE_KEY, 'on'); await tryPlay(); }
+                else { audio.pause(); setBtn(false); localStorage.setItem(STATE_KEY, 'off'); }
+            });
+
+            if ((localStorage.getItem(STATE_KEY) ?? 'on') === 'on') { tryPlay(); } else { setBtn(false); }
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden && localStorage.getItem(STATE_KEY) === 'on' && audio.paused) { tryPlay(); }
+            });
+        })();
+    </script>
+
+    <!-- ===== Detail Loader (캡션 제거 반영) ===== -->
+    <script>
+        const FLOWERS = [
+            { slug: 'hydrangea', en: 'HYDRANGEA', ko: '수국', emotions: '감사 · 진심 · 변화', symbolism: '감사, 진심, 변덕', img: 'img/flowers2/hydrangea2.svg', desc: '다채로운 색 변화로 감정의 스펙트럼을 비유하는 꽃. 마음의 변화와 솔직함을 기록에 남기기에 어울립니다.' },
+            { slug: 'babybreath', en: "BABY'S BREATH", ko: '안개꽃', emotions: '순수 · 응원 · 위로', symbolism: '순수, 영원, 배려', img: 'img/flowers2/babybreath2.svg', desc: '작고 많은 꽃들이 모여 은은한 존재감을 만드는 안개꽃은 일상의 작은 행복과 지속적인 응원을 상징합니다.' },
+            { slug: 'lavender', en: 'LAVENDER', ko: '라벤더', emotions: '휴식 · 안정 · 집중', symbolism: '평온, 헌신', img: 'img/flowers2/lavender2.svg', desc: '향기만으로도 마음을 안정시키는 라벤더는 휴식과 몰입의 순간을 기록하기 좋습니다.' },
+            { slug: 'freesia', en: 'FREESIA', ko: '프리지아', emotions: '설렘 · 시작 · 고마움', symbolism: '순수, 신뢰', img: 'img/flowers2/freesia2.svg', desc: '밝은 색감과 향의 프리지아는 새로운 시작과 설렘, 그리고 고마운 마음을 전하기에 알맞습니다.' },
+            { slug: 'daisy', en: 'DAISY', ko: '데이지', emotions: '기쁨 · 솔직함 · 맑음', symbolism: '순진무구, 희망', img: 'img/flowers2/daisy2.svg', desc: '햇살 같은 소박함을 가진 데이지는 맑고 투명한 기분을 담아내기 좋습니다.' },
+            { slug: 'white-lily', en: 'WHITE LILY', ko: '흰 백합', emotions: '존중 · 숭고함 · 위엄', symbolism: '순결, 고결', img: 'img/flowers2/white-lily2.svg', desc: '정제된 아름다움의 상징. 마음가짐을 다잡고 싶은 날의 기록과 잘 어울립니다.' },
+            { slug: 'lilac', en: 'LILAC', ko: '라일락', emotions: '그리움 · 봄기운 · 포근함', symbolism: '우정, 추억', img: 'img/flowers2/lilac2.svg', desc: '스치듯 찾아오는 추억과 계절의 향기를 담은 라일락은 아련한 감정을 표현합니다.' },
+            { slug: 'white-tulip', en: 'WHITE TULIP', ko: '흰 튤립', emotions: '응원 · 담백함 · 다짐', symbolism: '순수, 용서', img: 'img/flowers2/white-tulip2.svg', desc: '담백한 아름다움으로 응원의 메시지를 전하는 흰 튤립은 새로운 다짐과도 어울립니다.' },
+            { slug: 'sunflower', en: 'SUNFLOWER', ko: '해바라기', emotions: '행복 · 충실 · 에너지', symbolism: '동경, 충성', img: 'img/flowers2/sunflower2.svg', desc: '태양을 향하는 꾸준함처럼, 목표와 에너지를 채우고 싶은 날에 적합합니다.' },
+            { slug: 'peony', en: 'PEONY', ko: '작약', emotions: '풍요 · 축복 · 따뜻함', symbolism: '부, 번영', img: 'img/flowers2/peony2.svg', desc: '풍성한 꽃송이는 축복과 풍요를 상징합니다. 감사가 가득한 날에 사용해보세요.' },
+            { slug: 'forgetmenot', en: 'FORGET-ME-NOT', ko: '물망초', emotions: '기억 · 연결 · 소중함', symbolism: '진실한 사랑, 추억', img: 'img/flowers2/forgetmenot2.svg', desc: '작지만 선명한 존재감으로 소중한 인연을 기억하게 합니다.' },
+            { slug: 'lotus', en: 'LOTUS', ko: '연꽃', emotions: '회복 · 성찰 · 평온', symbolism: '청정, 재생', img: 'img/flowers2/lotus2.svg', desc: '흙탕물에서도 맑게 피어나는 연꽃은 회복과 성찰의 시간을 상징합니다.' }
+        ];
+
+        const order = FLOWERS.map(f => f.slug);
+
+        function qs(key) { const p = new URLSearchParams(location.search); return p.get(key) || ''; }
+        function getData(slug) { return FLOWERS.find(f => f.slug === slug) || FLOWERS[0]; }
+
+        function render(d) {
+            const img = document.getElementById('f-img');
+            img.src = d.img; img.alt = d.en;
+
+            // 상단 타이틀/부제, 정보 패널
+            document.getElementById('f-title').textContent = d.en;
+            document.getElementById('f-sub').textContent = d.ko;
+
+            const chips = document.getElementById('f-chips');
+            chips.innerHTML = '';
+            d.emotions.split('·').map(s => s.trim()).forEach(t => {
+                const c = document.createElement('span'); c.className = 'chip'; c.textContent = t; chips.appendChild(c);
+            });
+
+            document.getElementById('f-desc').textContent = d.desc;
+            document.getElementById('f-en').textContent = d.en;
+            document.getElementById('f-ko').textContent = d.ko;
+            document.getElementById('f-sym').textContent = d.symbolism;
+            document.getElementById('f-emote').textContent = d.emotions;
+
+            document.getElementById('crumbLabel').textContent = d.en;
+
+            const idx = order.indexOf(d.slug);
+            const prev = order[(idx - 1 + order.length) % order.length];
+            const next = order[(idx + 1) % order.length];
+            document.getElementById('f-prev').href = `flower-detail.html?flower=${encodeURIComponent(prev)}`;
+            document.getElementById('f-next').href = `flower-detail.html?flower=${encodeURIComponent(next)}`;
+
+            document.title = `꽃 카드 상세 - ${d.en}`;
+        }
+
+        (function () {
+            const slug = qs('flower');
+            const data = getData(slug);
+            render(data);
+        })();
+    </script>
+
+    <script>
+        // ✿ Custom Flower Cursor (same as index.html)
+        (function () {
+            const c = document.createElement('div');
+            c.className = 'flower-cursor';
+            c.textContent = '✿';
+            document.body.appendChild(c);
+
+            let x = 0, y = 0, tx = 0, ty = 0;
+            document.addEventListener('mousemove', e => { x = e.clientX; y = e.clientY; });
+
+            // 링크/버튼 위에 올리면 살짝 커지는 효과
+            document.addEventListener('mouseover', e => {
+                if (e.target.closest('a,button')) c.classList.add('active');
+                else c.classList.remove('active');
+            });
+
+            // 부드러운 추적
+            (function loop() {
+                tx += (x - tx) * 0.25;
+                ty += (y - ty) * 0.25;
+                c.style.transform = `translate(${tx}px, ${ty}px) translate(-50%,-50%)`;
+                requestAnimationFrame(loop);
+            })();
+        })();
+    </script>
+
+</body>
+
+</html>

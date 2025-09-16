@@ -1,0 +1,1503 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MOODIARY</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css"
+        crossorigin>
+    <style>
+        @font-face {
+            font-family: 'HsBombaram30';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10@1.1/HSBombaram3_Thin.woff') format('woff');
+            font-weight: 100;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'HsBombaram30';
+            src: url('https://gcore.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10@1.1/HSBombaram3_Regular.woff') format('woff');
+            font-weight: normal;
+            font-display: swap;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=IM+Fell+Double+Pica+SC&display=swap');
+
+        :root {
+            --ink: #111;
+            --muted: #666;
+            --bg: #fff;
+            --header-h: 72px;
+            --gap: 16px;
+            --side: clamp(18px, 3.8vw, 48px);
+            --card-b: #111;
+            --surface: #fff;
+            --gray: #f2f2f2;
+            --pill: #111;
+            --pill-bg: #fff7d6;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%
+        }
+
+        html {
+            scroll-behavior: smooth
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: Pretendard, system-ui, -apple-system, BlinkMacSystemFont, Inter, sans-serif;
+            line-height: 1.55;
+            cursor: none;
+        }
+
+        /* Header */
+        header.site {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            height: var(--header-h);
+            background: rgba(255, 255, 255, .9);
+            backdrop-filter: blur(6px)
+        }
+
+        .wrap {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 var(--side)
+        }
+
+        .bar {
+            height: var(--header-h);
+            display: grid;
+            gap: 10px;
+            grid-template-columns: 140px 1fr auto auto;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: inherit
+        }
+
+        .brand img {
+            width: 40px;
+            height: 40px;
+            display: block;
+            animation: float 2.4s ease-in-out infinite
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0)
+            }
+
+            50% {
+                transform: translateY(-5px)
+            }
+        }
+
+        nav.main {
+            display: flex;
+            justify-content: flex-end;
+            gap: 22px
+        }
+
+        nav.main a {
+            position: relative;
+            text-decoration: none;
+            color: var(--ink);
+            padding: 4px 2px;
+            font-weight: 500
+        }
+
+        nav.main a::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -6px;
+            height: 2px;
+            background: currentColor;
+            transform: scaleX(0);
+            transform-origin: 0 50%;
+            transition: transform .25s
+        }
+
+        nav.main a:hover::after {
+            transform: scaleX(1)
+        }
+
+        .sound {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--muted);
+            margin-left: clamp(10px, 1.2vw, 18px)
+        }
+
+        .sound button {
+            border: 1.25px solid #000;
+            border-radius: 0;
+            background: #fff;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background .25s ease, color .25s ease
+        }
+
+        .sound button:hover {
+            background: #000;
+            color: #fff
+        }
+
+        /* Splash */
+        .splash {
+            height: calc(100vh - var(--header-h));
+            padding: 0 var(--side) var(--side);
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) clamp(220px, 24vw, 340px);
+            column-gap: 10px;
+            align-items: end;
+            position: relative;
+        }
+
+        .splash h1 {
+            position: absolute;
+            left: var(--side);
+            bottom: var(--side);
+            margin: 0;
+            font-weight: 600;
+            letter-spacing: .5px;
+            font-size: clamp(56px, 11vw, 160px);
+            line-height: .9;
+        }
+
+        .splash .photo {
+            grid-column: 2;
+            justify-self: end;
+            align-self: end;
+            width: 100%;
+            aspect-ratio: 3/4;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        /* 사진 전체가 보이게: crop 방지 */
+        .splash .photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            /* 기존: cover */
+            object-position: bottom;
+        }
+
+        /* 오른쪽 사진 칼럼을 약간 더 키우기 */
+        .splash {
+            grid-template-columns: minmax(0, 1fr) clamp(260px, 28vw, 520px);
+        }
+
+        /* 카드/타일 이미지도 꽉 차게(이미 잘리지는 않지만 살짝 더 키움) */
+        .img img,
+        .fcard .img img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+
+        /* Sections */
+        .section {
+            max-width: 100%;
+            margin: 200px auto;
+            padding: 0 var(--side)
+        }
+
+        .section-head h2 {
+            margin: 0;
+            font-size: 28px
+        }
+
+        .today-video {
+            width: 100%;
+            aspect-ratio: 36/9;
+            border: 1px solid #111;
+            background: #e5e5e5;
+            overflow: hidden;
+            margin: 0 0 100px;
+        }
+
+        .today-video video {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #d9d9d9;
+        }
+
+        #sec-today .section-head h2,
+        #sec-diary .section-head h2,
+        #sec-flower .section-head h2 {
+            font-size: 40px;
+            font-weight: 700
+        }
+
+        #sec-today .twocol {
+            display: flex;
+            justify-content: center
+        }
+
+        #sec-today .twocol .box {
+            max-width: 720px;
+            margin: 0 auto;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .section-head a.small {
+            font-size: 18px;
+            color: #111;
+            text-decoration: none;
+            border-bottom: 1px solid #111
+        }
+
+        /* 소개 */
+        .site-blurb {
+            max-width: 100%;
+            padding: clamp(80px, 18vw, 100px) var(--side) clamp(60px, 8vw, 100px);
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 50vh;
+            text-align: center;
+        }
+
+        .site-blurb .eyebrow {
+            font-size: 15px;
+            letter-spacing: .4px;
+            color: #9ac4e4;
+            margin-bottom: 14px;
+            text-align: center;
+        }
+
+        .site-blurb .lead {
+            margin: 0 auto 14px;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        .site-blurb .desc {
+            margin: 0 auto;
+            max-width: min(72ch, 80vw);
+            color: rgb(100, 100, 100);
+            font-size: 16px;
+            line-height: 1.8;
+            text-align: center;
+        }
+
+        /* 카드/타일 */
+        .gallery {
+            display: grid;
+            gap: var(--gap);
+            grid-template-columns: repeat(12, 1fr)
+        }
+
+        .col-4 {
+            grid-column: span 4
+        }
+
+        .tile {
+            border: 1px solid var(--card-b);
+            border-radius: 0;
+            background: var(--surface);
+            display: flex;
+            flex-direction: column;
+            transition: transform .35s ease, box-shadow .35s ease
+        }
+
+        .tile:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 36px rgba(0, 0, 0, .12)
+        }
+
+        .img {
+            aspect-ratio: 4/3;
+            display: grid;
+            place-items: center;
+            background: #f2f2f2;
+            border-bottom: 1px solid var(--card-b)
+        }
+
+        .img.white {
+            background: #fff
+        }
+
+        .img img {
+            max-width: 90%;
+            max-height: 90%;
+            display: block
+        }
+
+        .caption {
+            padding: 14px;
+            font-size: 14px;
+            color: #333
+        }
+
+        /* Flower marquee */
+        .marquee {
+            overflow: hidden;
+            border: 1px solid #111;
+            border-radius: 0;
+            background: #fff;
+            margin-top: 12px
+        }
+
+        .track {
+            display: flex;
+            gap: var(--gap);
+            padding: 12px;
+            animation: scrollLeft 36s linear infinite;
+            will-change: transform
+        }
+
+        .tile-slim {
+            flex: 0 0 calc((100% - var(--gap)*4)/5);
+            border: 1px solid #111;
+            border-radius: 0;
+            background: #fff;
+            display: flex;
+            flex-direction: column
+        }
+
+        .tile-slim .img {
+            aspect-ratio: 4/3;
+            border-bottom: 1px solid #111
+        }
+
+        @media(max-width:1200px) {
+            .tile-slim {
+                flex-basis: calc((100% - var(--gap)*3)/4)
+            }
+        }
+
+        @media(max-width:900px) {
+            .tile-slim {
+                flex-basis: calc((100% - var(--gap)*2)/3)
+            }
+        }
+
+        @media(max-width:640px) {
+            .tile-slim {
+                flex-basis: calc((100% - var(--gap)*1)/2)
+            }
+        }
+
+        @keyframes scrollLeft {
+            from {
+                transform: translateX(0)
+            }
+
+            to {
+                transform: translateX(-50%)
+            }
+        }
+
+        @media(prefers-reduced-motion:reduce) {
+            .track {
+                animation: none
+            }
+        }
+
+        /* ===== Calendar: diary.html 스타일에 맞춘 스킨 (기능은 index의 JS 유지) ===== */
+        .calendar {
+            background: #fff;
+            border-radius: 0;
+        }
+
+        .cal-head {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: end;
+            gap: 12px;
+            padding: 10px;
+
+        }
+
+        .cal-head h3 {
+            margin: 0;
+            font-size: 20px;
+
+        }
+
+        /* 주중 헤더/날짜 그리드: 기존 구조(#calGrid)에 gap을 주고, 각 칸은 1px 라인 */
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            padding: 10px 8px 10px;
+        }
+
+        .cal-grid .dow {
+            border: 1px dashed #111;
+            color: #111;
+            font-weight: 300;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 34px;
+            background: #fff;
+        }
+
+        .cal-grid .day {
+            position: relative;
+            border: 0.5px solid #111;
+            background: #fff;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform .15s, box-shadow .15s;
+            min-height: 88px;
+        }
+
+        .cal-grid .day:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, .08)
+        }
+
+        .cal-grid .day.muted {
+            background: #fafafa;
+            cursor: default
+        }
+
+        .cal-grid .day.today {
+            outline: 2px solid rgba(0, 0, 0, .15)
+        }
+
+        .cal-grid .day.selected {
+            outline: 0;
+            box-shadow: inset 0 0 0 1px #000
+        }
+
+        .cal-grid .day span {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            font-weight: 300;
+            font-size: 16px;
+            color: #222;
+        }
+
+        /* 하단 범례(옵션) */
+        .cal-foot {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 10px;
+            color: #777;
+            font-size: 12px;
+            border-top: 1px solid #111;
+        }
+
+        /* footer */
+        footer {
+            padding: 56px var(--side);
+            text-align: center;
+            color: #777;
+            margin-top: 20px
+        }
+
+        /* Flower cursor */
+        .flower-cursor {
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 9999;
+            pointer-events: none;
+            user-select: none;
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            font-size: 24px;
+            line-height: 1;
+            transform: translate(-50%, -50%);
+            filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .12))
+        }
+
+        .flower-cursor::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border: 2px solid #111;
+            border-radius: 999px;
+            box-sizing: border-box
+        }
+
+        .flower-cursor.active {
+            font-size: 26px
+        }
+
+        /* PixelCard */
+        .pixel-card {
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+            border-radius: 0
+        }
+
+        .pixel-card .pixel-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            pointer-events: none
+        }
+
+        .pixel-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            aspect-ratio: 1;
+            background: radial-gradient(circle, rgba(255, 255, 255, .35), transparent 85%);
+            opacity: 0;
+            transition: opacity 800ms cubic-bezier(.5, 1, .89, 1);
+            pointer-events: none;
+            z-index: 1
+        }
+
+        .pixel-card:hover::before,
+        .pixel-card:focus-within::before {
+            opacity: 1
+        }
+
+        /* Steps/Mapping (keep) */
+        .steps {
+            display: grid;
+            gap: var(--gap);
+            grid-template-columns: repeat(12, 1fr)
+        }
+
+        .step {
+            grid-column: span 4;
+            border: 1.5px solid #111;
+            background: #fff
+        }
+
+        .step .head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1.5px solid #111;
+            padding: 10px 12px
+        }
+
+        .step .num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border: 1.5px solid #111
+        }
+
+        .step .body {
+            padding: 12px;
+            font-size: 14px;
+            color: #333
+        }
+
+        .mapping {
+            display: grid;
+            gap: var(--gap);
+            grid-template-columns: repeat(12, 1fr)
+        }
+
+        .map-card {
+            grid-column: span 3;
+            border: 1px solid #111;
+            background: #fff
+        }
+
+        .map-card .img {
+            aspect-ratio: 1/1
+        }
+
+        .map-card .caption {
+            font-size: 13px
+        }
+
+        .twocol {
+            display: grid;
+            grid-template-columns: 1.1fr .9fr;
+            gap: clamp(18px, 3.2vw, 34px);
+            align-items: center
+        }
+
+        .twocol .box {
+            background: #fff
+        }
+
+        .twocol img {
+            display: block;
+            width: 100%;
+            height: auto
+        }
+
+        .cta {
+            border: 1.5px dashed #111;
+            background: #fff;
+            padding: 28px;
+            text-align: center
+        }
+
+        .cta .btn {
+            display: inline-block;
+            margin-top: 12px;
+            border: 1.5px solid #111;
+            background: #fff;
+            padding: 10px 16px;
+            text-decoration: none;
+            color: #111
+        }
+
+        .cta .btn:hover {
+            background: #000;
+            color: #fff
+        }
+
+        /* reveal + scroll-float */
+        .reveal,
+        [data-reveal] {
+            opacity: 0;
+            transform: translateY(24px)
+        }
+
+        .reveal.is-in,
+        [data-reveal].is-in {
+            opacity: 1;
+            transform: none;
+            transition: opacity .7s ease, transform .7s ease
+        }
+
+        .stagger .tile,
+        .stagger .tile-slim,
+        .stagger .step,
+        .stagger .map-card {
+            opacity: 0;
+            transform: translateY(24px)
+        }
+
+        .scroll-float {
+            overflow: hidden;
+            margin: clamp(6px, 1.4vw, 12px) 0;
+        }
+
+        .scroll-float-text {
+            display: inline-block;
+            line-height: 1.35;
+        }
+
+        .char {
+            display: inline-block;
+        }
+
+        /* Responsive */
+        @media(max-width:640px) {
+            .bar {
+                grid-template-columns: 110px 1fr auto auto
+            }
+
+            .splash {
+                grid-template-columns: 1fr min(60vw, 340px)
+            }
+
+            .gallery {
+                grid-template-columns: repeat(4, 1fr)
+            }
+
+            .col-4 {
+                grid-column: span 4
+            }
+
+            .steps .step {
+                grid-column: span 12
+            }
+
+            .mapping .map-card {
+                grid-column: span 6
+            }
+
+            .twocol {
+                grid-template-columns: 1fr
+            }
+
+            .section {
+                margin: 96px auto
+            }
+        }
+
+        /* CircularGallery (hooks) */
+        .circular-wrap {
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .circular-gallery {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            cursor: grab;
+            user-select: none;
+            will-change: transform;
+        }
+
+        .circular-gallery:active {
+            cursor: grabbing;
+        }
+
+        .cg-item {
+            position: absolute;
+            left: 25%;
+            transform: translate(-50%, -50%);
+            width: clamp(180px, 16vw, 240px);
+            aspect-ratio: auto;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #111;
+            background: #fff;
+            overflow: hidden;
+            border-radius: calc(var(--br, .05) * 24px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .06);
+        }
+
+        .cg-item .img {
+            flex: 1;
+            display: grid;
+            place-items: center;
+            border-bottom: 1px solid #111;
+            background: #fff;
+        }
+
+        .cg-item .img img {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+        }
+
+        .cg-item .caption {
+            padding: 12px;
+            font-size: 16px;
+            text-align: center;
+            background: #fff;
+            color: #333;
+        }
+
+        .cg-title {
+            position: absolute;
+            left: 50%;
+            bottom: -10px;
+            transform: translate(-50%, 100%);
+            font: 600 14px/1.2 Pretendard, system-ui, sans-serif;
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, .45);
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        #sec-today .box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .section-title {
+            font-family: "IM Fell Double Pica SC", serif;
+            font-size: 30px;
+            font-weight: 500;
+            color: #9ac4e4;
+        }
+
+        .section-head {
+            font-family: "IM Fell Double Pica SC", serif;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: end;
+            color: #9ac4e4;
+        }
+
+        .section-head a.small {
+            justify-self: end;
+            border-bottom: 1px solid #111;
+        }
+
+        #sec-today .section-head h2,
+        #sec-diary .section-head h2,
+        #sec-flower .section-head h2 {
+            font-size: 30px;
+            font-weight: 500;
+        }
+
+        /* MOODIARY outline font */
+        #heroTitle {
+            color: transparent;
+            -webkit-text-stroke: 2px #111;
+        }
+
+        #heroTitle,
+        #heroTitle .char {
+            font-family: "IM Fell Double Pica SC", serif;
+            font-weight: 400;
+            font-style: normal;
+            color: #cfe6f7;
+            -webkit-text-stroke: 1px #111;
+        }
+
+        /* Flower marquee (cards) */
+        .flower-marquee {
+            overflow: hidden;
+            background: #fff;
+            margin-top: 12px;
+            position: relative;
+            padding: 0 40px;
+        }
+
+        .flower-track {
+            --gap: var(--gap, 16px);
+            --duration: 28s;
+            display: flex;
+            gap: var(--gap);
+            padding: 52px;
+            width: max-content;
+            animation: flowerMarquee var(--duration) linear infinite;
+            will-change: transform;
+        }
+
+        .flower-marquee:hover .flower-track,
+        .flower-track.is-paused {
+            animation-play-state: paused;
+        }
+
+        @keyframes flowerMarquee {
+            from {
+                transform: translateX(0)
+            }
+
+            to {
+                transform: translateX(-50%)
+            }
+        }
+
+        .fcard {
+            flex: 0 0 clamp(200px, 18vw, 260px);
+            border: 1px solid #111;
+            border-radius: 0;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            outline: none;
+            margin-left: 20px;
+            transition: transform .35s cubic-bezier(.34, 1.56, .64, 1);
+        }
+
+        .fcard:hover {
+            transform: scale(1.08)
+        }
+
+        .fcard:focus {
+            box-shadow: 0 0 0 2px #111 inset;
+        }
+
+        .fcard .img {
+            aspect-ratio: 4/3;
+            display: grid;
+            place-items: center;
+            background: #fff;
+        }
+
+        .fcard .img img {
+            max-width: 90%;
+            max-height: 90%;
+            display: block;
+        }
+
+        .fcard .cap {
+            font-family: "IM Fell Double Pica SC", serif;
+            padding: 12px;
+            font-size: 18px;
+            color: #333;
+            text-align: center;
+        }
+
+        .site-blurb .lead {
+            font-size: 24px;
+            font-weight: 400;
+            color: #111;
+            text-align: center;
+        }
+
+        /* 오늘 날짜 칸 하이라이트 (연한 노랑) */
+        .cal-grid .day.today {
+            background: var(--pill-bg);
+            /* 이미 :root에 #fff7d6 정의되어 있음 */
+            outline: 2px solid rgba(0, 0, 0, .15);
+        }
+
+        /* 선택 + 오늘 겹칠 때도 노랑 유지 (선택 테두리 강화) */
+        .cal-grid .day.today.selected {
+            background: var(--pill-bg);
+            box-shadow: inset 0 0 0 2px #111;
+        }
+
+        /* 오늘 칸에 상시 부드러운 drop-shadow 주기 */
+        .cal-grid .day.today {
+            outline: none;
+            /* 필요 시 윤곽선 제거 */
+            box-shadow: 0 6px 16px rgba(0, 0, 0, .12);
+            /* 원하는 값으로 조절 */
+        }
+
+        /* 오늘 칸 hover 시만 더 강조하고 싶다면 */
+        .cal-grid .day.today:hover {
+            box-shadow: 0 10px 24px rgba(0, 0, 0, .16);
+        }
+
+        /* 오늘+선택 상태도 동일 톤 유지 */
+        .cal-grid .day.today.selected {
+            box-shadow: inset 0 0 0 2px #111,
+                /* 내부 테두리 유지 */
+                0 6px 16px rgba(0, 0, 0, .12);
+            /* 바깥 그림자 함께 */
+        }
+
+        /* DIARY 소개문 안의 링크를 줄 오른쪽 끝으로 */
+        #sec-diary>p {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            /* 텍스트와 링크 사이 여백 */
+        }
+
+        #sec-diary>p a.small {
+            margin-left: auto;
+            /* 오른쪽 끝으로 밀기 */
+        }
+
+        /* 소개 글을 좌-우 2열로: 왼쪽(텍스트), 오른쪽(링크) */
+        #sec-diary>p,
+        #sec-flower>div:first-of-type {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            /* 1열=가변 텍스트, 2열=링크 */
+            align-items: baseline;
+            /* 같은 줄 위아래 기준 맞춤 */
+            column-gap: 12px;
+            width: 100%;
+            max-width: none !important;
+            /* p/div에 걸린 inline max-width(78ch/90ch) 무시 */
+        }
+
+        /* 링크를 컨테이너 오른쪽 끝(섹션 padding 안쪽)으로 고정 */
+        #sec-diary>p a.small,
+        #sec-flower>div:first-of-type a.small {
+            justify-self: end;
+            /* 그리드 우측 정렬 */
+            white-space: nowrap;
+            /* 'diary →'가 줄바꿈되지 않게 */
+        }
+
+        /* 1) FLOWER: 텍스트(왼쪽) + 링크(오른쪽 끝)로 2열 그리드 */
+        #sec-flower .section-head+div {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            /* 왼쪽=가변 텍스트, 오른쪽=링크 */
+            align-items: baseline;
+            column-gap: 12px;
+            width: 100%;
+            max-width: none !important;
+            /* 인라인 max-width(90ch) 무시 */
+        }
+
+        #sec-flower .section-head+div a.small {
+            justify-self: end;
+            /* 컨테이너 오른쪽 끝으로 */
+            white-space: nowrap;
+        }
+
+        /* 2) 링크 보라색(visited) 제거 + 톤 통일 */
+        a.small,
+        a.small:link,
+        a.small:visited,
+        a.small:hover,
+        a.small:active {
+            color: rgb(99, 99, 99) !important;
+            /* 보라색 visited 제거 */
+            text-decoration: none;
+            border-bottom: 1px solid rgb(100, 100, 100);
+            /* diary 톤과 맞춤 */
+        }
+
+        /* (선택) diary 문장도 같은 방식으로 오른쪽 끝 고정하고 싶을 때
+   이미 적용돼 있지만 통일감을 위해 아래도 유지해도 좋아요. */
+        #sec-diary>p {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: baseline;
+            column-gap: 12px;
+            width: 100%;
+            max-width: none !important;
+        }
+
+        #sec-diary>p a.small {
+            justify-self: end;
+            white-space: nowrap;
+        }
+
+        /* 회색(이번 달 아님) 칸 스타일 */
+        .cal-grid .day.muted {
+            background: #f2f2f2;
+            /* 연한 회색 */
+            border-color: #111;
+            color: #bbb;
+            cursor: default;
+        }
+
+        /* 회색 칸은 숫자 숨김(혹시 스팬이 있더라도) */
+        .cal-grid .day.muted span {
+            display: none;
+        }
+
+        /* TODAY: 영상 아래에만 여백 주기 */
+        #sec-today .today-video {
+            margin-bottom: 240px;
+            /* 화면 크기에 맞춰 16~40px */
+        }
+
+        /* 혹시 기존에 twocol에 여백이 있었다면 제거(중복 간격 방지) */
+        #sec-today .twocol {
+            margin-top: 0 !important;
+        }
+
+        #sec-flower .flower-track img {
+            height: 350px;
+            margin: 20px 24px;
+            display: block;
+        }
+
+        /* 꽃 마키 트랙 여백/간격 축소 */
+        #sec-flower .flower-track {
+            gap: 12px;
+            /* 기존 gap보다 축소 */
+            padding: 10px 5px;
+            /* 위아래/좌우 패딩도 줄임 */
+        }
+
+        .flower-card {
+            display: inline-block;
+            cursor: pointer;
+            transition: transform .35s cubic-bezier(.34, 1.56, .64, 1);
+        }
+
+        .flower-card img {
+            height: 360px;
+            width: auto;
+            display: block;
+            transition: transform .35s cubic-bezier(.34, 1.56, .64, 1),
+                box-shadow .35s ease;
+        }
+
+
+        /* 호버 시 은은하게 부웅 */
+        .flower-card:hover img {
+            transform: translateY(-10px) scale(1.08);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+            /* 은은한 그림자 */
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="site">
+        <div class="wrap">
+            <div class="bar">
+                <a class="brand" href="index.html" aria-label="MOODIARY Home">
+                    <img src="img/sub-flower.svg" alt="MOODIARY 로고"><span>MOODIARY</span>
+                </a>
+                <div></div>
+                <nav class="main" aria-label="Main">
+                    <a href="today-loding.html" class="active">Today</a>
+                    <a href="diary-loding.html">Diary</a>
+                    <a href="flower-loding.html">Flower</a>
+                </nav>
+                <div class="sound">
+                    <button id="soundToggle" aria-pressed="false">🔊 Sound (On)</button>
+                    <audio id="bgm" preload="auto" autoplay loop playsinline src="audio/temp.mp3"></audio>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Splash -->
+    <section class="splash" aria-label="Splash">
+        <h1 id="heroTitle">MOODIARY</h1>
+        <figure class="photo pixel-card" data-variant="pink" id="heroPixelCard">
+            <canvas class="pixel-canvas"></canvas>
+            <img src="img/main-flower.svg" alt="Moodiary hero image" style="position:relative;z-index:2;">
+        </figure>
+    </section>
+
+    <!-- 소개 블록 -->
+    <section class="site-blurb" aria-label="Intro blurb">
+        <div class="eyebrow">✿</div>
+        <p class="lead scroll-float">
+            <span class="scroll-float-text sf-target" data-duration="1" data-ease="back.inOut(2)">
+                무디어리. <strong>당신의 꽃 감정 다이어리</strong>
+            </span>
+        </p>
+        <p class="desc scroll-float">
+            <span class="scroll-float-text sf-target" data-duration="1" data-ease="back.inOut(2)"
+                data-start="center bottom+=50%" data-end="bottom bottom-=35%" data-stagger="0.02">
+                오늘 감정을 한 줄로 기록해보세요. 그 감정을 꽃과 연결해줍니다.
+            </span>
+        </p>
+        <p class="desc scroll-float">
+            <span class="scroll-float-text sf-target" data-duration="1" data-ease="back.inOut(2)"
+                data-start="center bottom+=50%" data-end="bottom bottom-=35%" data-stagger="0.02">
+                기록·다이어리를 하나의 흐름으로 연결해, 당신의 꽃 감정 다이어리를 만들어보세요.
+            </span>
+        </p>
+    </section>
+
+    <!-- TODAY -->
+    <section class="section" id="sec-today">
+        <figure class="today-video">
+            <video id="todayPreviewVideo" autoplay muted playsinline loop poster="img/today-cover.jpg">
+                <source src="video/today-preview.mov" type="video/mp4">
+            </video>
+        </figure>
+
+        <div class="twocol" style="margin-top:12px;">
+            <div class="box" style="padding:0px;">
+                <h2 class="section-title scroll-float">
+                    <span class="scroll-float-text sf-target">✿ Today</span>
+                </h2>
+                <p style="margin:10px;color:rgb(100,100,100);">
+                    한 줄 감정을 적으면, 감정에 어울리는 꽃이 매칭되어 오늘의 꽃 카드가 만들어집니다.
+                </p>
+                <div style="display:flex;gap:8px;align-items:center;margin:0 0 40px;">
+                    <input id="todayInput" type="text" placeholder="ex) 오늘은 마음이 울적한 기분이야."
+                        style="flex:1;min-width:560px;max-width:560px;height:60px;border:1px solid #111;padding:0 20px;border-radius:0;">
+                    <a id="todayGo" class="small" href="today-loding.html"
+                        style="display:inline-block;border:1px solid #111;padding:15px 40px;text-decoration:none;color:#111;">today
+                        →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DIARY -->
+    <section class="section" id="sec-diary">
+        <div class="section-head">
+            <h2 class="scroll-float"><span class="scroll-float-text sf-target">✿ Diary</span></h2>
+        </div>
+        <p style="max-width:78ch;color:rgb(100, 100, 100);margin:0 0 30px;">
+            오늘의 기록이 달력과 카드로 저장됩니다. 날짜를 눌러 다이어리를 확인하거나 정원을 다시 꾸밀 수 있어요.
+            <a class="small" href="diary-loding.html">diary →</a>
+        </p>
+
+        <div class="calendar" id="calendar">
+            <div class="cal-grid" id="calGrid"></div>
+            <!-- 범례(스타일만 추가, 기능 영향 없음) -->
+        </div>
+    </section>
+
+    <!-- FLOWER -->
+    <section class="section" id="sec-flower">
+        <div class="section-head">
+            <h2 class="scroll-float"><span class="scroll-float-text sf-target">✿ Flower</span></h2>
+        </div>
+
+        <div style="max-width:90ch;color:rgb(100,100,100);margin:0 0 40px;">
+            오늘의 감정을 기록하고, 꽃으로 남기세요. 완성한 카드는 다이어리에 저장되고, 꽃들은 아래 카드로 미리 볼 수 있어요.
+            <a class="small" href="flower-loding.html">flower →</a>
+        </div>
+
+        <div class="flower-marquee" id="flowerMarquee">
+            <div class="flower-track" id="flowerTrack" aria-label="Flower cards marquee"></div>
+        </div>
+    </section>
+
+    <footer>© 2025 MOODIARY</footer>
+
+    <script>
+        /* ===== BGM ===== */
+        (function BGM() {
+            const audio = document.getElementById('bgm'); const btn = document.getElementById('soundToggle');
+            const STATE_KEY = 'moodiary_bgm_state', POS_KEY = 'moodiary_bgm_pos', VOL_KEY = 'moodiary_bgm_vol';
+            function setBtn(on) { btn.textContent = on ? '🔊 Sound (On)' : '🔈 Sound (Off)'; btn.setAttribute('aria-pressed', on) }
+            const fps = 60;
+            function fadeTo(target = 0.35, ms = 800) {
+                target = Math.max(0, Math.min(1, target));
+                const step = (target - audio.volume) / (ms / (1000 / fps));
+                const t = setInterval(() => {
+                    audio.volume = Math.max(0, Math.min(1, audio.volume + step));
+                    if ((step > 0 && audio.volume >= target) || (step < 0 && audio.volume <= target)) { clearInterval(t); localStorage.setItem(VOL_KEY, String(audio.volume)); }
+                }, 1000 / fps)
+            }
+            async function tryPlay() {
+                try { audio.muted = false; audio.volume = parseFloat(localStorage.getItem(VOL_KEY) || '0.30'); await audio.play(); setBtn(true); fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700) }
+                catch (e) { setBtn(false); const unlock = async () => { try { await audio.play(); setBtn(true); fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700) } catch { } finally { window.removeEventListener('pointerdown', unlock, { once: true }); } }; window.addEventListener('pointerdown', unlock, { once: true }); }
+            }
+            audio.addEventListener('loadedmetadata', () => {
+                const pos = parseFloat(localStorage.getItem(POS_KEY) || '0');
+                if (isFinite(pos) && pos > 0 && (!isFinite(audio.duration) || pos < audio.duration - 0.4)) { audio.currentTime = pos; }
+            });
+            const savePos = () => { if (isFinite(audio.currentTime)) localStorage.setItem(POS_KEY, String(audio.currentTime)) };
+            const timer = setInterval(savePos, 1000); window.addEventListener('pagehide', savePos);
+            btn.addEventListener('click', async () => { if (audio.paused) { localStorage.setItem(STATE_KEY, 'on'); await tryPlay(); } else { audio.pause(); setBtn(false); localStorage.setItem(STATE_KEY, 'off'); } });
+            if ((localStorage.getItem(STATE_KEY) ?? 'on') === 'on') { tryPlay(); } else { setBtn(false) }
+            document.addEventListener('visibilitychange', () => { if (!document.hidden && localStorage.getItem(STATE_KEY) === 'on' && audio.paused) { tryPlay(); } });
+        })();
+
+        // today 버튼 클릭 시 query 구성
+        (function () {
+            const btn = document.getElementById('todayGo');
+            const input = document.getElementById('todayInput');
+            function z(n) { return String(n).padStart(2, '0') }
+            function fmt(d) { return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}` }
+            if (btn) {
+                btn.addEventListener('click', function () {
+                    const base = 'today-loding.html';
+                    const date = fmt(new Date());
+                    const q = new URLSearchParams({ date, text: (input && input.value) || '' });
+                    btn.href = base + '?' + q.toString();
+                });
+            }
+        })();
+
+        // 사운드 토글 보조
+        (function () {
+            const audio = document.getElementById('bgm'); const btn = document.getElementById('soundToggle');
+            let playing = false; function update() { btn.textContent = playing ? '🔊 Sound (On)' : '🔈 Sound (Off)'; btn.setAttribute('aria-pressed', playing) }
+            btn.addEventListener('click', async () => { try { if (!playing) { await audio.play(); playing = true } else { audio.pause(); playing = false } update() } catch { alert('임시 음악 파일: /audio/temp.mp3') } });
+            update();
+        })();
+
+        // 이번 달 달력 + 날짜 클릭 → day.html (기능 그대로 유지)
+        (function buildCalendar() {
+            const title = document.getElementById('calTitle'); const grid = document.getElementById('calGrid');
+            const now = new Date(); const y = now.getFullYear(); const m = now.getMonth(); const todayDate = now.getDate();
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            if (title) title.textContent = `${monthNames[m]} ${y}`;
+
+            // 요일 헤더(.dow) – 기존 구조 유지, diary 느낌으로 CSS만 변경
+            const dows = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dows.forEach(d => { const el = document.createElement('div'); el.className = 'dow'; el.textContent = d; grid.appendChild(el); });
+
+            // 0=Sun ~ 6=Sat 기준(일요일 시작)
+            const first = new Date(y, m, 1);
+            const startOffset = first.getDay();
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+            // ✅ 이번 달이 차지하는 주(줄) 수 계산: 4~6주 중 하나
+            const weeks = Math.ceil((startOffset + daysInMonth) / 7);
+            const totalCells = weeks * 7;  // 요일 헤더 제외, 날짜칸 개수
+
+            for (let i = 0; i < totalCells; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'day';
+                const num = document.createElement('span');
+
+                const inThisMonth = (i >= startOffset) && (i < startOffset + daysInMonth);
+
+                if (inThisMonth) {
+                    const dayNum = i - startOffset + 1;
+                    num.textContent = dayNum;          // 숫자: 이번 달만
+                    cell.appendChild(num);
+
+                    if (dayNum === todayDate) cell.classList.add('today');
+
+                    // 클릭 이동: 이번 달 칸만 활성화
+                    cell.dataset.date = `${y}-${String(m + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                } else {
+                    // 이전/다음 달 칸: 회색 + 숫자/링크 없음
+                    cell.classList.add('muted');
+                }
+
+                grid.appendChild(cell);
+            }
+
+
+
+            grid.addEventListener('click', (e) => {
+                const day = e.target.closest('.day'); if (!day) return;
+                const d = day.dataset.date; if (!d) return;
+                location.href = `day.html?date=${encodeURIComponent(d)}`;
+            });
+        })();
+
+        // ✿ 커스텀 꽃 커서
+        (function () {
+            const c = document.createElement('div'); c.className = 'flower-cursor'; c.textContent = '✿'; document.body.appendChild(c);
+            let x = 0, y = 0, tx = 0, ty = 0;
+            document.addEventListener('mousemove', e => { x = e.clientX; y = e.clientY });
+            document.addEventListener('mouseover', e => { if (e.target.closest('a,button')) c.classList.add('active'); else c.classList.remove('active'); });
+            (function loop() { tx += (x - tx) * 0.25; ty += (y - ty) * 0.25; c.style.transform = `translate(${tx}px, ${ty}px) translate(-50%,-50%)`; requestAnimationFrame(loop) })();
+        })();
+    </script>
+
+    <!-- GSAP -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+
+    <!-- Hero title split / loop -->
+    <script>
+        (function heroSplitTitle() {
+            const title = document.getElementById('heroTitle'); if (!title) return;
+            const text = title.textContent; title.setAttribute('aria-label', text); title.textContent = '';
+            const frag = document.createDocumentFragment();
+            for (const ch of text) { const span = document.createElement('span'); span.className = 'char'; span.textContent = ch; span.style.display = 'inline-block'; span.style.transform = 'translateY(40px)'; span.style.opacity = '0'; frag.appendChild(span) }
+            title.appendChild(frag); const chars = title.querySelectorAll('.char');
+            function animateChars() {
+                gsap.fromTo(chars, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: .6, ease: 'power3.out', stagger: .1, onComplete: () => { setTimeout(() => { animateChars() }, 5000) } });
+            }
+            const observer = new IntersectionObserver((entries, obs) => { entries.forEach(entry => { if (!entry.isIntersecting) return; animateChars(); obs.unobserve(entry.target); }); }, { threshold: .1, rootMargin: '-100px' });
+            observer.observe(title); title.addEventListener('click', () => { animateChars() });
+        })();
+    </script>
+
+    <!-- Eyebrow scroll reveal -->
+    <script>
+        (function scrollRevealEyebrow() {
+            const el = document.querySelector('.site-blurb .eyebrow'); if (!el) return;
+            const baseOpacity = 0, enableBlur = true, baseRotation = 5, blurStrength = 10, rotationEnd = 'bottom bottom', wordAnimEnd = 'bottom bottom';
+            const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const raw = el.textContent; const tokens = raw.trim().split(/\s+/); el.textContent = ''; const frag = document.createDocumentFragment();
+            if (tokens.length <= 1) { [...raw].forEach(ch => { const span = document.createElement('span'); span.className = 'sr-unit'; span.textContent = ch; span.style.display = 'inline-block'; frag.appendChild(span) }) }
+            else { raw.split(/(\s+)/).forEach(part => { if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return } const span = document.createElement('span'); span.className = 'sr-unit'; span.textContent = part; span.style.display = 'inline-block'; frag.appendChild(span) }) }
+            el.appendChild(frag);
+            if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') { gsap.registerPlugin(ScrollTrigger) }
+            const units = el.querySelectorAll('.sr-unit');
+            if (reduce) { el.style.transform = 'rotate(0deg)'; units.forEach(s => { s.style.opacity = 1; s.style.filter = 'none' }); return; }
+            gsap.fromTo(el, { transformOrigin: '0% 50%', rotate: baseRotation }, { rotate: 0, ease: 'none', scrollTrigger: { trigger: el, start: 'top bottom', end: rotationEnd, scrub: true } });
+            gsap.fromTo(units, { opacity: baseOpacity, willChange: 'opacity' }, { opacity: 1, ease: 'none', stagger: .05, scrollTrigger: { trigger: el, start: 'top bottom-=20%', end: wordAnimEnd, scrub: true } });
+            if (enableBlur) { gsap.fromTo(units, { filter: `blur(${blurStrength}px)` }, { filter: 'blur(0px)', ease: 'none', stagger: .05, scrollTrigger: { trigger: el, start: 'top bottom-=20%', end: wordAnimEnd, scrub: true } }); }
+        })();
+    </script>
+
+    <!-- ScrollFloat (문자 분해 애니메이션) -->
+    <script>
+        (function pageScrollReveal() {
+            if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+            gsap.registerPlugin(ScrollTrigger);
+            document.querySelectorAll('.reveal,[data-reveal]').forEach(el => {
+                gsap.fromTo(el, { opacity: 0, y: 24 }, { opacity: 1, y: 0, ease: 'none', scrollTrigger: { trigger: el, start: 'top 85%', end: 'top 55%', scrub: true } });
+            });
+            function applyScrollFloat(target) {
+                if (!target || target.__sfApplied) return; target.__sfApplied = true;
+                const raw = target.textContent; const wrap = document.createElement('span'); wrap.className = 'scroll-float-text';
+                target.textContent = ''; target.appendChild(wrap);
+                const nodes = []; for (const ch of raw) { const span = document.createElement('span'); span.className = 'char'; span.textContent = (ch === ' ') ? '\u00A0' : ch; wrap.appendChild(span); nodes.push(span); }
+                const duration = parseFloat(target.dataset.duration || '1');
+                const ease = target.dataset.ease || 'back.inOut(2)';
+                const start = target.dataset.start || 'center bottom+=50%';
+                const end = target.dataset.end || 'bottom bottom-=40%';
+                const stagger = parseFloat(target.dataset.stagger || '0.03');
+                gsap.fromTo(nodes, { willChange: 'opacity, transform', opacity: 0, yPercent: 120, scaleY: 2.3, scaleX: 0.7, transformOrigin: '50% 0%' }, {
+                    duration: duration, ease: ease, opacity: 1, yPercent: 0, scaleY: 1, scaleX: 1, stagger: stagger,
+                    scrollTrigger: { trigger: target, start: start, end: end, scrub: true }
+                });
+            }
+            document.querySelectorAll('.sf-target').forEach(applyScrollFloat);
+        })();
+    </script>
+
+    <script>
+        /* ===== Flower Infinite Marquee Builder (images only) ===== */
+        (function () {
+            const track = document.getElementById('flowerTrack');
+            if (!track) return;
+
+            const FLOWERS = [
+                { slug: 'hydrangea', name: 'Hydrangea', img: 'img/flowers2/hydrangea2.svg' },
+                { slug: 'babybreath', name: "Baby's Breath", img: 'img/flowers2/babybreath2.svg' },
+                { slug: 'lavender', name: 'Lavender', img: 'img/flowers2/lavender2.svg' },
+                { slug: 'freesia', name: 'Freesia', img: 'img/flowers2/freesia2.svg' },
+                { slug: 'daisy', name: 'Daisy', img: 'img/flowers2/daisy2.svg' },
+                { slug: 'white-lily', name: 'White Lily', img: 'img/flowers2/white-lily2.svg' },
+                { slug: 'lilac', name: 'Lilac', img: 'img/flowers2/lilac2.svg' },
+                { slug: 'white-tulip', name: 'White Tulip', img: 'img/flowers2/white-tulip2.svg' },
+                { slug: 'sunflower', name: 'Sunflower', img: 'img/flowers2/sunflower2.svg' },
+                { slug: 'peony', name: 'Peony', img: 'img/flowers2/peony2.svg' },
+                { slug: 'forgetmenot', name: 'Forget-me-not', img: 'img/flowers2/forgetmenot2.svg' },
+                { slug: 'lotus', name: 'Lotus', img: 'img/flowers2/lotus2.svg' }
+            ];
+
+            // 카드/캡션 없이 "이미지"만 추가
+            function createSet() {
+                const frag = document.createDocumentFragment();
+                FLOWERS.forEach(f => {
+                    const card = document.createElement('div');
+                    card.className = 'flower-card';
+
+                    const img = document.createElement('img');
+                    img.src = f.img;
+                    img.alt = f.name;
+                    img.loading = 'lazy';
+
+                    // 호버 시 멈춤
+                    card.addEventListener('pointerenter', () => track.classList.add('is-paused'));
+                    card.addEventListener('pointerleave', () => track.classList.remove('is-paused'));
+
+                    // 클릭 시 상세 이동
+                    card.addEventListener('click', () => {
+                        location.href = `flower-detail.html?flower=${encodeURIComponent(f.slug)}`;
+                    });
+
+                    card.appendChild(img);
+                    frag.appendChild(card);
+                });
+                return frag;
+            }
+
+
+            track.innerHTML = '';
+            track.appendChild(createSet());
+            track.appendChild(createSet()); // 무한처럼 보이도록 2세트
+
+            // 반응형 속도
+            const mql = window.matchMedia('(max-width: 640px)');
+            const applySpeed = () => {
+                track.style.setProperty('--duration', mql.matches ? '10s' : '50s');
+            };
+            applySpeed();
+            mql.addEventListener?.('change', applySpeed);
+        })();
+    </script>
+
+
+</body>
+
+</html>

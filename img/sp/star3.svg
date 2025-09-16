@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128.18 128.18">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #f9f1ac;
+        stroke: #000;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: .5px;
+      }
+    </style>
+  </defs>
+  <polygon class="cls-1" points="32.99 20.19 36.11 32.44 47.84 36.14 36.11 39.84 32.99 52.1 29.86 39.84 18.13 36.14 29.86 32.44 32.99 20.19"/>
+  <polygon class="cls-1" points="95.2 79.96 98.33 92.21 110.06 95.91 98.33 99.61 95.2 111.87 92.07 99.61 80.34 95.91 92.07 92.21 95.2 79.96"/>
+  <circle class="cls-1" cx="51.21" cy="26.72" r="3.06"/>
+  <circle class="cls-1" cx="46.09" cy="98.97" r="3.78"/>
+  <circle class="cls-1" cx="36.55" cy="96.61" r="2.36"/>
+  <circle class="cls-1" cx="41.28" cy="88.17" r="2.36"/>
+  <circle class="cls-1" cx="53.25" cy="18.25" r="1.94"/>
+  <polygon class="cls-1" points="77.44 70.01 106.53 64.42 77.31 58.8 87.39 43.12 73.26 52.2 66.09 19.66 58.94 52.08 44.67 43.02 54.7 58.83 25.65 64.42 54.95 70.05 45.85 84.65 58.89 76.53 66.09 109.17 73.23 76.79 87.48 85.83 77.44 70.01"/>
+</svg>

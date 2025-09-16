@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128.18 128.18">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #e0c3a9;
+        stroke: #000;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: .5px;
+      }
+    </style>
+  </defs>
+  <rect class="cls-1" x="40.06" y="67.64" width="50.47" height="7.21" transform="translate(136.53 5.95) rotate(90)"/>
+  <rect class="cls-1" x="16.57" y="67.64" width="50.47" height="7.21" transform="translate(113.05 29.44) rotate(90)"/>
+  <rect class="cls-1" x="62.34" y="67.64" width="50.47" height="7.21" transform="translate(158.82 -16.33) rotate(90)"/>
+  <rect class="cls-1" x="16.9" y="91.23" width="94.38" height="7.21"/>
+  <rect class="cls-1" x="11.87" y="38.98" width="10.06" height="63.18"/>
+  <rect class="cls-1" x="106.25" y="38.98" width="10.06" height="63.18"/>
+  <circle class="cls-1" cx="16.9" cy="33.45" r="7.42"/>
+  <circle class="cls-1" cx="111.28" cy="33.45" r="7.42"/>
+  <path class="cls-1" d="M116.31,55.31l-30.02-5.69c-14.67-2.78-29.72-2.78-44.39,0l-30.02,5.69v-6.66l30.02-5.69c14.67-2.78,29.72-2.78,44.39,0l30.02,5.69v6.66Z"/>
+</svg>

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Books Loading (fast)</title>
+
+    <!-- 이동에 사용할 5권만 선프리로드 -->
+    <link rel="preload" as="image" href="img/b/b1.svg">
+    <link rel="preload" as="image" href="img/b/b2.svg">
+    <link rel="preload" as="image" href="img/b/b3.svg">
+    <link rel="preload" as="image" href="img/b/b4.svg">
+    <link rel="preload" as="image" href="img/b/b5.svg">
+
+    <style>
+        :root {
+            --need: 5;
+            --gap: 20px;
+            --ink: #111;
+            --bg: #fff;
+            --side: clamp(16px, 3.5vw, 40px);
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%;
+            cursor: none
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: Pretendard, system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', sans-serif;
+            overflow: hidden;
+            line-height: 1.55;
+        }
+
+        .hint {
+            position: fixed;
+            left: var(--side);
+            top: var(--side);
+            z-index: 10;
+            font-size: 18px;
+            color: #000;
+            opacity: .6;
+            user-select: none;
+            pointer-events: none;
+            letter-spacing: .02em;
+        }
+
+        .header {
+            padding: 10px 16px;
+            background: #fff
+        }
+
+        .wrap {
+            height: calc(100vh - 60px);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            padding: 10px 20px 24px;
+            align-items: end;
+        }
+
+        .zone {
+            position: relative;
+            height: 100%;
+            display: flex;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: var(--gap);
+            padding: 0 10px 60px;
+        }
+
+        .zone::after {
+            content: "";
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            bottom: 5px;
+            height: 10px;
+            background: #ddd;
+        }
+
+        .zone.left {
+            justify-content: flex-start
+        }
+
+        .zone.right {
+            justify-content: flex-end
+        }
+
+        .marks {
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            bottom: 320px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            align-items: end;
+            justify-items: center;
+            pointer-events: none;
+            z-index: 2;
+            font-size: 14px;
+            letter-spacing: .02em;
+        }
+
+        .mark {
+            color: #cfcfcf;
+            transition: color .12s ease, transform .12s ease
+        }
+
+        .mark.active {
+            color: #a9a9a9;
+            transform: translateY(-1px) scale(1.06)
+        }
+
+        .slots {
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            bottom: 15px;
+            height: 300px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            align-items: end;
+            justify-items: center;
+            z-index: 1;
+        }
+
+        .slot {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center
+        }
+
+        /* 책: 페인트/레이아웃 비용 최소화 (그림자·무한 애니메이션 제거) */
+        .book {
+            height: 270px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform .12s ease;
+            will-change: transform;
+            contain: content;
+        }
+
+        .book:hover {
+            transform: translateY(-6px) scale(1.03)
+        }
+
+        .book:active {
+            transform: translateY(2px) scale(.995)
+        }
+
+        .ghost {
+            position: fixed;
+            z-index: 9999;
+            pointer-events: none;
+            will-change: transform, opacity;
+        }
+
+        .book.settled {
+            animation: pop .16s ease-out
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(.985) translateY(1px)
+            }
+
+            100% {
+                transform: scale(1) translateY(0)
+            }
+        }
+
+        @media (max-width:900px) {
+            body {
+                overflow: auto
+            }
+
+            .wrap {
+                grid-template-columns: 1fr;
+                height: auto
+            }
+
+            .book {
+                height: 200px
+            }
+
+            .marks {
+                font-size: 13px
+            }
+
+            .slots {
+                height: 240px
+            }
+        }
+
+        /* 경량 커스텀 커서(그림자 제거) */
+        .flower-cursor {
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 9999;
+            pointer-events: none;
+            user-select: none;
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            font-size: 24px;
+            line-height: 1;
+            transform: translate(-50%, -50%);
+        }
+
+        .flower-cursor::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border: 2px solid #111;
+            border-radius: 999px;
+            box-sizing: border-box;
+        }
+
+        .flower-cursor.active {
+            font-size: 26px
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header"></header>
+
+    <main class="wrap" aria-label="books-loading">
+        <section class="zone left" id="left">
+            <!-- lazy/async 로딩 -->
+            <img class="book" src="img/b/b1.svg" alt="book 1" loading="eager" decoding="async" />
+            <img class="book" src="img/b/b2.svg" alt="book 2" loading="eager" decoding="async" />
+            <img class="book" src="img/b/b3.svg" alt="book 3" loading="eager" decoding="async" />
+            <img class="book" src="img/b/b4.svg" alt="book 4" loading="eager" decoding="async" />
+            <img class="book" src="img/b/b5.svg" alt="book 5" loading="eager" decoding="async" />
+            <img class="book" src="img/b/b6.svg" alt="book 6" loading="lazy" decoding="async" />
+            <img class="book" src="img/b/b7.svg" alt="book 7" loading="lazy" decoding="async" />
+            <img class="book" src="img/b/b8.svg" alt="book 8" loading="lazy" decoding="async" />
+            <img class="book" src="img/b/b9.svg" alt="book 9" loading="lazy" decoding="async" />
+            <img class="book" src="img/b/b10.svg" alt="book 10" loading="lazy" decoding="async" />
+            <img class="book" src="img/b/b11.svg" alt="book 11" loading="lazy" decoding="async" />
+        </section>
+
+        <section class="zone right" id="right">
+            <div class="marks" id="marks">
+                <span class="mark" data-i="0">✿</span>
+                <span class="mark" data-i="1">✿</span>
+                <span class="mark" data-i="2">✿</span>
+                <span class="mark" data-i="3">✿</span>
+                <span class="mark" data-i="4">✿</span>
+            </div>
+            <div class="slots" id="slots">
+                <div class="slot" data-i="0"></div>
+                <div class="slot" data-i="1"></div>
+                <div class="slot" data-i="2"></div>
+                <div class="slot" data-i="3"></div>
+                <div class="slot" data-i="4"></div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // ===== 옵션: 총 재생시간/전환 지연만 바꾸면 전체 속도 제어됨 =====
+        const TOTAL_BOOKS = 5;            // 옮길 권수
+        const TOTAL_DURATION_MS = 900;     // 전체 로딩 시간 (더 빠르게: 600~750)
+        const REDIRECT_DELAY_MS = 100;     // 마지막 이동 후 대기
+        const NEXT_URL = 'day.html';
+
+        // 접근성 라벨 부여
+        document.querySelectorAll('.book').forEach((b, i) => {
+            b.tabIndex = 0; b.setAttribute('role', 'button'); b.setAttribute('aria-label', `책 ${i + 1} 옮기기`);
+        });
+
+        function goNext() { location.href = NEXT_URL; }
+
+        // 슉 이동(고스트)
+        function swooshFromTo(srcRect, destRect, srcEl) {
+            const ghost = srcEl.cloneNode(true);
+            ghost.classList.add('ghost');
+            ghost.style.left = srcRect.left + 'px';
+            ghost.style.top = srcRect.top + 'px';
+            ghost.style.width = srcRect.width + 'px';
+            ghost.style.height = srcRect.height + 'px';
+            document.body.appendChild(ghost);
+
+            const dx = destRect.left - srcRect.left;
+            const dy = destRect.top - srcRect.top;
+
+            const anim = ghost.animate([
+                { transform: 'translate(0,0) scale(1) rotate(0deg)', opacity: 1 },
+                { transform: `translate(${dx * 0.6}px, ${dy * 0.9}px) scale(1.03) rotate(-2deg)`, opacity: 1, offset: .6 },
+                { transform: `translate(${dx}px, ${dy}px) scale(.98) rotate(0deg)`, opacity: .96 }
+            ], { duration: 200, easing: 'cubic-bezier(.2,.8,.2,1)' });
+            anim.onfinish = () => ghost.remove();
+        }
+
+        function moveBookToSlot(book, slot, mark) {
+            if (!book || book.dataset.moved === '1') return;
+
+            book.dataset.moved = '1';
+            book.style.pointerEvents = 'none';
+
+            const srcRect = book.getBoundingClientRect();
+            slot.appendChild(book);
+            book.style.opacity = '0';
+
+            requestAnimationFrame(() => {
+                const destRect = book.getBoundingClientRect();
+                swooshFromTo(srcRect, destRect, book);
+                book.classList.add('settled');
+                book.style.opacity = '1';
+            });
+
+            mark.classList.add('active');
+        }
+
+        function startTimeline() {
+            const books = Array.from(document.querySelectorAll('.book'));
+            const marks = Array.from(document.querySelectorAll('.mark'));
+            const slots = Array.from(document.querySelectorAll('.slot'));
+
+            let moved = 0;
+            const stepInterval = TOTAL_DURATION_MS / TOTAL_BOOKS; // 균등 분배
+            const pickNextBook = () => books.find(b => b.dataset.moved !== '1');
+
+            function dropOne() {
+                // 오른쪽→왼쪽: 4,3,2,1,0
+                const idx = (TOTAL_BOOKS - 1) - moved;
+                moveBookToSlot(pickNextBook(), slots[idx], marks[idx]);
+                moved++;
+                if (moved >= TOTAL_BOOKS) {
+                    setTimeout(goNext, REDIRECT_DELAY_MS);
+                }
+            }
+
+            let startTs = null;
+            function tick(ts) {
+                if (!startTs) startTs = ts;
+                const elapsed = ts - startTs;
+                const shouldHaveMoved = Math.min(TOTAL_BOOKS, Math.floor(elapsed / stepInterval));
+                while (moved < shouldHaveMoved) dropOne();
+
+                if (elapsed < TOTAL_DURATION_MS) {
+                    requestAnimationFrame(tick);
+                } else if (moved < TOTAL_BOOKS) {
+                    // 경계 조건 보정
+                    while (moved < TOTAL_BOOKS) dropOne();
+                }
+            }
+            requestAnimationFrame(tick);
+
+            // 수동 조작도 유지
+            books.forEach(book => {
+                book.addEventListener('click', () => {
+                    if (moved >= TOTAL_BOOKS) return;
+                    dropOne();
+                });
+                book.addEventListener('keydown', e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (moved >= TOTAL_BOOKS) return;
+                        dropOne();
+                    }
+                });
+            });
+        }
+
+        // 전체 리소스(load) 대기하지 않고 즉시 시작
+        document.addEventListener('DOMContentLoaded', startTimeline);
+    </script>
+
+    <script>
+        // ✿ 경량 커스텀 커서
+        (function () {
+            const c = document.createElement('div');
+            c.className = 'flower-cursor';
+            c.textContent = '✿';
+            document.body.appendChild(c);
+
+            let x = 0, y = 0, tx = 0, ty = 0;
+            document.addEventListener('mousemove', e => { x = e.clientX; y = e.clientY; });
+            document.addEventListener('mouseover', e => {
+                if (e.target.closest('a,button')) c.classList.add('active'); else c.classList.remove('active');
+            });
+            (function loop() {
+                tx += (x - tx) * 0.25; ty += (y - ty) * 0.25;
+                c.style.transform = `translate(${tx}px, ${ty}px) translate(-50%,-50%)`;
+                requestAnimationFrame(loop);
+            })();
+        })();
+
+        // 모션 줄임 설정 시 즉시 전환
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            location.href = 'diary.html';
+        }
+    </script>
+    <script>
+        (function () {
+            const u = new URL(location.href);
+            if (u.searchParams.get("next") === "day") {
+                // day.html로 이동하면서 세션 1 → 세션 2로 순차 스크롤
+                window.location.href = "day.html#snap-diary";
+            }
+        })();
+    </script>
+
+</body>
+
+</html>
