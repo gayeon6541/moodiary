@@ -1,0 +1,3776 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <!-- === 환경 보장 (html2canvas + IDB) === -->
+    <script>
+        (function ensureEnv() {
+            if (!window.html2canvas) {
+                const s = document.createElement('script');
+                s.src = "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";
+                document.head.appendChild(s);
+            }
+            if (!window.IDB || !window.IDB.put) {
+                function idbStore() {
+                    const DB = 'moodiary-db', ST = 'garden'; let dbp = null;
+                    const open = () => dbp || (dbp = new Promise((res, rej) => {
+                        const r = indexedDB.open(DB, 1);
+                        r.onupgradeneeded = () => r.result.createObjectStore(ST);
+                        r.onsuccess = () => res(r.result);
+                        r.onerror = () => rej(r.error);
+                    }));
+                    const put = (k, blob) => open().then(db => new Promise((res, rej) => {
+                        const tx = db.transaction(ST, 'readwrite'); const st = tx.objectStore(ST);
+                        const rq = st.put(blob, k); rq.onsuccess = () => res(true); rq.onerror = () => rej(rq.error);
+                    }));
+                    return { put };
+                }
+                window.IDB = idbStore();
+            }
+        })();
+    </script>
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MOODIARY – Day Detail</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css"
+        crossorigin>
+
+    <style>
+        :root {
+            --ink: #111;
+            --muted: #666;
+            --bg: #ffffff;
+            --header-h: 72px;
+            --side: clamp(14px, 3vw, 36px);
+            --line: #111;
+            --gap: 18px;
+            --border: 0.5px;
+            --cell: 26px;
+            --dcal-gap: 4px;
+            --dcal-border: 1px;
+            --orange: #9ac4e4;
+            --gray: #8E8E8E;
+            --side: clamp(16px, 4vw, 60px);
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html {
+            scroll-behavior: smooth
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: Pretendard, system-ui, -apple-system, BlinkMacSystemFont, Inter, sans-serif;
+            line-height: 1.55;
+            cursor: none
+        }
+
+        /* ===== 헤더 ===== */
+        /* day.html */
+        header.site {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            height: var(--header-h);
+            background: rgba(255, 255, 255, .9);
+            backdrop-filter: blur(6px);
+            border-bottom: 1px solid #eaeaea;
+            /* ✅ 추가 */
+        }
+
+        .wrap {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 var(--side);
+        }
+
+        .bar {
+            height: var(--header-h);
+            display: grid;
+            gap: 10px;
+            grid-template-columns: 140px 1fr auto auto;
+            align-items: center
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: inherit
+        }
+
+        .brand img {
+            width: 40px;
+            height: 40px;
+            display: block;
+            animation: float 2.4s ease-in-out infinite
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0)
+            }
+
+            50% {
+                transform: translateY(-5px)
+            }
+        }
+
+        /* day.html */
+        nav.main {
+            display: flex;
+            justify-content: flex-end;
+            gap: 22px;
+            /* ✅ today와 동일 */
+        }
+
+
+        nav.main a {
+            position: relative;
+            text-decoration: none;
+            color: var(--ink);
+            padding: 4px 2px;
+            font-weight: 500
+        }
+
+        nav.main a::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -6px;
+            height: 2px;
+            background: currentColor;
+            transform: scaleX(0);
+            transform-origin: 0 50%;
+            transition: transform .25s
+        }
+
+        nav.main a:hover::after {
+            transform: scaleX(1)
+        }
+
+        .sound {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--muted);
+            margin-left: clamp(8px, 1vw, 14px)
+        }
+
+        .sound button {
+            border: 1.25px solid #000;
+            border-radius: 0;
+            background: #fff;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background .25s, color .25s
+        }
+
+        .sound button:hover {
+            background: #000;
+            color: #fff
+        }
+
+        /* ===== 메인 그리드 ===== */
+        main {
+            padding: 30px var(--side) 14px;
+            min-height: calc(100vh - var(--header-h) - 16px)
+        }
+
+        .grid3 {
+            display: grid;
+            gap: var(--gap);
+            /* 왼쪽 폭 줄이고 오른쪽을 더 크게 */
+            grid-template-columns: minmax(360px, 0.9fr) minmax(600px, 1.4fr);
+            align-items: stretch;
+        }
+
+
+
+        @media (max-width:1200px) {
+            .grid3 {
+                grid-template-columns: 1fr
+            }
+        }
+
+        /* 왼쪽: 1:1 레이아웃 (달력 / 카드+설명) */
+        .left-half {
+            display: grid;
+            gap: var(--gap);
+            grid-template-columns: 1fr 1fr;
+            /* 1 : 1 */
+            grid-template-rows: 1fr;
+            /* 한 줄 */
+            grid-template-areas: "cal desc";
+            align-items: stretch;
+            min-height: 0;
+            height: 100%;
+        }
+
+        @media (max-width:1200px) {
+            .left-half {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto;
+                grid-template-areas: "cal""desc"
+            }
+        }
+
+        .panel {
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            border: var(--border) solid var(--line);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, .06)
+        }
+
+        .panel-h {
+            background-color: #fff;
+            border-bottom: var(--border) dashed var(--line);
+            padding: 15px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px
+        }
+
+        .panel-b {
+            background-color: #fff;
+            padding: 12px;
+            min-height: 0;
+            flex: 1;
+            overflow: auto;
+        }
+
+        .btn {
+            border: var(--border) solid var(--line);
+            border-radius: 0;
+            background: #fff;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background .2s, color .2s, transform .1s
+        }
+
+        .btn:hover {
+            background: #000;
+            color: #fff
+        }
+
+        .btn:active {
+            transform: translateY(1px)
+        }
+
+        /* 미니 캘린더 */
+        .mini-cal {
+            display: grid;
+            gap: 10px;
+            align-items: center
+        }
+
+        .cal-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            padding: 0 2px
+        }
+
+        .cal-title {
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .cal-nav {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap
+        }
+
+        /* 달력 꽉차게 수정 */
+        .week,
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: var(--dcal-gap);
+            /* ← 여기서 반영됨 */
+            width: 100%;
+            max-width: none;
+            margin: 0 auto;
+        }
+
+
+        .cell {
+            position: relative;
+            border: 0.5px solid #111;
+            background: transparent;
+            aspect-ratio: 1/1;
+            /* 정사각형 */
+            width: 100%;
+            /* 한 칸을 자동으로 채움 */
+            cursor: pointer;
+            transition: transform .12s ease, box-shadow .12s ease;
+            font-size: 0;
+            display: block;
+            -webkit-appearance: none;
+            appearance: none;
+            padding: 0;
+            border-radius: 0;
+        }
+
+
+        .cell:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, .06)
+        }
+
+        .cell.off {
+            background: #f7f7f7;
+            cursor: default
+        }
+
+        .cell.today {
+            outline: 2px solid rgba(0, 0, 0, .15)
+        }
+
+        .cell.sel {
+            outline: 2px solid #000
+        }
+
+        .week>div {
+            width: var(--cell);
+            height: var(--cell);
+            display: grid;
+            place-items: center;
+            font-size: 16px;
+            font-weight: 400;
+            color: #999
+        }
+
+        .cell:focus-visible {
+            outline: 2px solid #000;
+            outline-offset: -2px
+        }
+
+        #leftInfo {
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            margin-top: 8px;
+            /* 👈 위 여백 추가 */
+        }
+
+
+        .mark-flower {
+            position: absolute;
+            right: 2px;
+            bottom: 2px;
+            font-size: 13px;
+            line-height: 1;
+            color: var(--gray)
+        }
+
+        .mark-flower.orange {
+            color: var(--orange)
+        }
+
+        .mark-dot {
+            display: none
+        }
+
+        /* Card Description 내부 구성 */
+        .desc-area {
+            grid-area: desc
+        }
+
+        .desc-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 12px
+        }
+
+        .desc-text {
+            margin: 0;
+            color: #333;
+            line-height: 1.7;
+            font-size: 14px;
+            white-space: pre-line
+        }
+
+        /* ▶ 플라워카드 (Card Description 안으로 이동) */
+        .card {
+            width: min(420px, 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            overflow: hidden;
+            border-radius: 0
+        }
+
+        .card-art {
+            background-color: #fff;
+            position: relative;
+            flex: 1 1 auto;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        #flowerImg {
+            max-width: 90%;
+            max-height: 76%;
+            object-fit: contain;
+            transition: transform .28s ease
+        }
+
+        /* 카드엔 소품 숨김 */
+        .overlay-prop {
+            display: none !important
+        }
+
+        .card-title {
+            margin: 0;
+            font-size: clamp(18px, 4.6vw, 26px);
+            font-weight: 600;
+            letter-spacing: .8px;
+            font-family: ui-serif, "Times New Roman", Georgia, serif
+        }
+
+        .card-quote {
+            width: 100%;
+            min-height: 44px;
+            border: 0.5px solid #111;
+            padding: 10px 12px;
+            text-align: center;
+            color: #2a2a2a;
+            font-size: 14px;
+            font-style: italic;
+            letter-spacing: .1px
+        }
+
+        .card-sub {
+            color: #5a5a5a;
+            font-size: clamp(12px, 2.6vw, 14px);
+            letter-spacing: .2px
+        }
+
+        /* 오른쪽 에디터 */
+        .editor-wrap {
+            background-color: #fff;
+            display: grid;
+            gap: 10px;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: auto 1fr;
+            height: 100%
+        }
+
+        .toolbar {
+            grid-column: 1/-1;
+            display: flex;
+            gap: 8px;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap
+        }
+
+        .canvas {
+            border: 0.5px solid #111;
+            grid-column: 1;
+            grid-row: 2;
+            position: relative;
+            overflow: hidden;
+            min-height: clamp(380px, 52vh, 560px);
+            aspect-ratio: 1/1;
+            background-size: cover;
+            background-position: center
+        }
+
+        .options-col {
+            grid-column: 2;
+            grid-row: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow: auto;
+            padding: 8px;
+            max-width: 420px
+        }
+
+        .section-title {
+            font-weight: 400;
+            margin: 0 0 6px 0;
+            font-size: 13px;
+            letter-spacing: .2px
+        }
+
+        .panel-sec+.panel-sec {
+            border-top: 0.5px dashed #111;
+            padding-top: 8px
+        }
+
+        .assets {
+            display: flex;
+            flex-direction: column;
+            gap: 8px
+        }
+
+        /* 배경/소품 썸네일 — 64×64 고정 */
+        .thumbs {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+            gap: 8px
+        }
+
+        .thumb {
+            width: 64px;
+            height: 64px;
+            /* ← 테두리 박스 64×64 고정 */
+            border: 0.5px solid #111;
+            background: #fff;
+            padding: 0;
+            place-items: center;
+            cursor: pointer;
+            aspect-ratio: 1/1
+        }
+
+        .thumb img {
+            width: 80%;
+            height: 80%;
+            object-fit: contain;
+            display: block;
+            place-items: center;
+
+        }
+
+        /* ✿ custom cursor */
+        .flower-cursor {
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 9999;
+            pointer-events: none;
+            user-select: none;
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            font-size: 20px;
+            line-height: 1;
+            transform: translate(-50%, -50%);
+            filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .12))
+        }
+
+        .flower-cursor::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border: 2px solid #111;
+            border-radius: 999px;
+            box-sizing: border-box
+        }
+
+        .flower-cursor.active {
+            transform: translate(-50%, -50%) scale(1.06)
+        }
+
+        /* 선택/편집 툴 */
+        .selbox {
+            position: absolute;
+            pointer-events: none;
+            border: 1.0px dashed #111;
+            outline: 2px solid rgba(0, 0, 0, .05);
+            transform-origin: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .06)
+        }
+
+        .handle {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border: 1px solid #111;
+            background: #fff;
+            pointer-events: auto
+        }
+
+        .h-nw {
+            left: -7px;
+            top: -7px;
+            cursor: nwse-resize
+        }
+
+        .h-ne {
+            right: -7px;
+            top: -7px;
+            cursor: nesw-resize
+        }
+
+        .h-sw {
+            left: -7px;
+            bottom: -7px;
+            cursor: nesw-resize
+        }
+
+        .h-se {
+            right: -7px;
+            bottom: -7px;
+            cursor: nwse-resize
+        }
+
+        .h-rot {
+            left: 50%;
+            transform: translateX(-50%);
+            top: -26px;
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            cursor: grab
+        }
+
+        /* 🔸 Mini Calendar Bigger: 셀/간격/텍스트 확대 */
+        :root {
+            --cell: clamp(24px, 3vw, 36px);
+            --dcal-gap: 2px;
+            /* 기존 4px → 2px 로 좁힘 */
+        }
+
+
+        /* 요일 라벨/아이콘 가독성 ↑ */
+        .week {
+            font-size: 12px;
+        }
+
+        .week>div {
+            width: var(--cell);
+            height: var(--cell);
+        }
+
+        .cell {
+            width: var(--cell);
+            height: var(--cell);
+        }
+
+        .mark-flower {
+            font-size: 16px;
+            right: 3px;
+            bottom: 3px;
+        }
+
+        /* 상단 월/년도 타이틀 강조 */
+        .cal-title {
+            font-size: 14px;
+        }
+
+        #ytext {
+            font-size: 14px;
+        }
+
+        /* 좁은 화면에서는 너무 커지지 않도록 안전장치 */
+        @media (max-width: 640px) {
+            :root {
+                --cell: 30px;
+                --dcal-gap: 4px;
+            }
+
+            .week {
+                font-size: 11px;
+            }
+        }
+
+        /* === Mini Calendar 1:1(상/하) 레이아웃 === */
+        .mini-cal {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            /* 위/아래 정확히 반띵 */
+            gap: 10px;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .mini-cal-top {
+            display: grid;
+            grid-template-rows: auto auto 1fr auto;
+            /* 헤더/요일/그리드/힌트 */
+            min-height: 0;
+        }
+
+        .mini-cal-top .grid {
+            /* 달력 그리드가 상단 영역을 꽉 채우며, 행 높이를 자동 균등 */
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-auto-rows: 1fr;
+            /* 세로도 영역을 꽉 채우도록 정사각에 최대 근접 */
+            gap: var(--dcal-gap);
+            width: 100%;
+            min-height: 0;
+        }
+
+        .mini-cal-top .cell {
+            width: 100%;
+            aspect-ratio: 1/1;
+            /* 정사각 유지 */
+        }
+
+        /* === 하단: 기록 요약 === */
+        .mini-details {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            /* 정사각형 */
+            overflow: auto;
+            /* 내용 많으면 내부 스크롤 */
+            display: block;
+            /* grid/flex 간섭 방지 */
+        }
+
+        .md-row {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            align-items: start;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .md-label {
+            font-size: 12px;
+            color: #999;
+            font-weight: 700;
+        }
+
+        .md-val {
+            font-size: 14px;
+            line-height: 1.0;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .chips .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px;
+            background: #fff;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .chips .chip img.icon {
+            width: 16px;
+            height: 16px;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* ☁️ 배경용 컨테이너 */
+        .background-decor {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            z-index: -1;
+            /* 화면 제일 뒤에 */
+        }
+
+        /* ☁️ 구름 스타일 */
+        .cloud {
+            position: absolute;
+            opacity: 0.85;
+            animation: floatCloud linear infinite;
+            will-change: transform;
+        }
+
+        /* 기본 애니메이션 경로 */
+        @keyframes floatCloud {
+            0% {
+                transform: translateX(-250px) translateY(0);
+            }
+
+            50% {
+                transform: translateX(60vw) translateY(-15px);
+            }
+
+            100% {
+                transform: translateX(120vw) translateY(0);
+            }
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            /* 스크롤 안 보이게 */
+        }
+
+        main {
+            min-height: calc(100vh - var(--header-h));
+            display: flex;
+            align-items: center;
+            /* 세로 가운데 */
+            justify-content: center;
+            /* 가로 가운데 */
+            padding: 0 var(--side);
+            /* 위아래 여백 제거 */
+        }
+
+        .grid3 {
+            max-height: calc(100vh - var(--header-h));
+            width: 100%;
+        }
+
+        .panel {
+            height: 100%;
+        }
+    </style>
+    <style>
+        /* === Scroll Snap 컨테이너 === */
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            overflow: hidden;
+        }
+
+        /* 기존에 숨김 유지 */
+
+        .snap-viewport {
+            height: 100vh;
+            overflow-y: auto;
+            scroll-snap-type: y mandatory;
+        }
+
+        .snap-section {
+            min-height: 100vh;
+            scroll-snap-align: start;
+            display: block;
+        }
+
+        /* 세션 1, 세션 2 내용 상단 여백 추가 */
+        /* 1) 섹션 상단 패딩 제거 */
+        #snap-diary,
+        #snap-day {
+            scroll-margin-top: var(--header-h);
+            /* 새로고침 때 헤더만큼 여백 확보 */
+        }
+
+        /* 세션1 달력 위쪽 여백을 헤더보다 조금 더 확보 */
+        #snap-diary {
+            scroll-margin-top: calc(var(--header-h) + 20px);
+            /* 헤더 높이 + 추가 여백 */
+        }
+
+
+        /* 2) 스냅 컨테이너가 헤더만큼 위쪽 여백을 인지하도록 */
+        .snap-viewport {
+            scroll-padding-top: var(--header-h);
+            scroll-padding-top: var(--header-h);
+            /* 헤더 높이만큼 보정 */
+        }
+
+
+        /* === diary.html 달력 임베드 전용 네임스페이스 === */
+        /* === diary.html 스타일과 동일하게 적용 === */
+        #diaryEmbed {
+            padding: 0 var(--side);
+            height: calc(100vh - var(--header-h));
+            display: grid;
+            align-items: stretch;
+        }
+
+        #diaryEmbed .calendar {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        #diaryEmbed .cal-head {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: end;
+            gap: 12px;
+            padding: 10px;
+        }
+
+        #diaryEmbed .cal-hero {
+            font-family: "IM Fell Double Pica SC", serif;
+            font-weight: 100;
+            font-size: 100px;
+            line-height: 1;
+            color: #111;
+        }
+
+        #diaryEmbed .cal-title {
+            font-family: "IM Fell Double Pica SC", serif;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        #diaryEmbed .cal-title .mname {
+            font-weight: 500;
+            font-size: 40px;
+            color: #111;
+        }
+
+        #diaryEmbed .cal-title .year {
+            font: 400 14px/1.2 Pretendard, system-ui, sans-serif;
+            color: #999;
+            font-weight: 600;
+        }
+
+        #diaryEmbed .cal-nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        #diaryEmbed .btn {
+            appearance: none;
+            border: 0.5px solid var(--line, #111);
+            background: #fff;
+            padding: 6px 10px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        #diaryEmbed .week {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            padding: 8px 8px 6px;
+            color: #000;
+            font-weight: 500;
+            font-size: 12px;
+        }
+
+        #diaryEmbed .grid {
+            flex: 1;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            padding: 0 8px 10px;
+            grid-auto-rows: 1fr;
+        }
+
+        #diaryEmbed .cell {
+            position: relative;
+            border: 0.5px solid var(--line, #111);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform .15s, box-shadow .15s;
+        }
+
+        #diaryEmbed .cell:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, .08);
+        }
+
+        #diaryEmbed .cell.off {
+            background: #fafafa;
+            cursor: default;
+        }
+
+        #diaryEmbed .cell.today {
+            outline: 2px solid rgba(0, 0, 0, .15);
+        }
+
+        #diaryEmbed .cell.sel {
+            outline: 2px solid #000;
+        }
+
+        #diaryEmbed .date-number {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            font-weight: 400;
+            font-size: 18px;
+            color: #222;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+
+        #diaryEmbed .thumb-box {
+            position: absolute;
+            right: 6px;
+            bottom: 6px;
+            width: 40px;
+            height: 40px;
+            border: 0.5px solid #111;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+        }
+
+        #diaryEmbed .cal-foot {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 10px;
+            color: #777;
+            font-size: 12px;
+        }
+
+
+        /* === 세션1 달력 꽉차게 (snap-diary 전용) === */
+        #snap-diary #diaryEmbed .calendar {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        #snap-diary #diaryEmbed .grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-auto-rows: 1fr;
+            /* 세로 균등 분배 */
+            gap: 10px;
+            /* 셀 사이 여백 줄임 */
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #snap-diary #diaryEmbed .cell {
+            width: 100%;
+            height: 100%;
+            aspect-ratio: auto;
+            /* 정사각형 강제 해제 */
+            border: 0.5px solid #111;
+        }
+
+        /* 세션1 달력 숫자(span) 위에서 클릭해도 뒤의 .cell이 클릭되게 */
+        #diaryEmbed .date-number {
+            pointer-events: none;
+        }
+
+        .scroll-hint {
+            text-align: center;
+            font-size: 14px;
+            color: #2878b4;
+            margin-top: 12px;
+            animation: blinkText 1.5s infinite;
+        }
+
+        .scroll-hint .arrow {
+            display: inline-block;
+            margin-left: 6px;
+            animation: bounceArrow 1s infinite;
+        }
+
+        /* 텍스트 반짝 */
+        @keyframes blinkText {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        /* 화살표 위아래 반짝 */
+        @keyframes bounceArrow {
+
+            0%,
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            50% {
+                transform: translateY(4px);
+                opacity: 0.5;
+            }
+        }
+
+        /* 꽃·날씨 2칸 가로 배치 */
+        .fw-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        /* 각 컬럼 타이틀 */
+        .fw-col-title {
+            font-weight: 400;
+            margin: 0 0 6px 0;
+            font-size: 13px;
+            letter-spacing: .2px
+        }
+
+        .thumb.blank {
+            border: none;
+            background: transparent;
+            width: auto;
+            height: auto;
+            min-width: 64px;
+            min-height: 64px;
+        }
+
+        /* 배경, 꽃, 날씨, 소품 썸네일 모두 테두리 제거 */
+        #assetsBg .thumb,
+        #assetsFlowerCol .thumb,
+        #assetsWeatherCol .thumb,
+        #assetsProps .thumb {
+            border: none !important;
+        }
+
+        /* 배경, 꽃, 날씨, 소품 썸네일 호버 시 살짝 확대 */
+        #assetsBg .thumb img,
+        #assetsFlowerCol .thumb img,
+        #assetsWeatherCol .thumb img,
+        #assetsProps .thumb img {
+            transition: transform 0.25s ease;
+            /* 부드러운 전환 */
+        }
+
+        #assetsBg .thumb:hover img,
+        #assetsFlowerCol .thumb:hover img,
+        #assetsWeatherCol .thumb:hover img,
+        #assetsProps .thumb:hover img {
+            transform: scale(1.3);
+            /* 10% 확대 */
+        }
+
+        /* 캡처 순간엔 테두리/선택박스 숨김 */
+        #canvas[data-capturing="1"] {
+            border-color: transparent !important;
+        }
+
+        #canvas[data-capturing="1"] .selbox,
+        #canvas[data-capturing="1"] .handle {
+            display: none !important;
+        }
+
+        /* 선택박스 우상단 X 버튼 */
+        .handle.h-close {
+            right: -26px;
+            top: -26px;
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            font-size: 14px;
+            line-height: 1;
+            background: #fff;
+            border: 1px solid #111;
+            user-select: none;
+        }
+
+        .handle.h-close:hover {
+            background: #000;
+            color: #fff;
+        }
+
+        /* ==== Memo Area ==== */
+        .memo-area {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border-top: 0.5px dashed var(--line);
+            padding-top: 10px;
+        }
+
+        .memo-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .memo-title {
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: .2px
+        }
+
+        .memo-date {
+            color: #888;
+            font-size: 12px
+        }
+
+        .memo-input {
+            width: 100%;
+            min-height: 120px;
+            resize: vertical;
+            padding: 10px 12px;
+            border: 0.5px solid var(--line);
+            outline: none;
+            font: 14px/1.6 Pretendard, system-ui, -apple-system, sans-serif;
+            background: #fff;
+        }
+
+        .memo-input:focus {
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, .08)
+        }
+
+        .memo-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end
+        }
+
+        .memo-toast {
+            font-size: 12px;
+            color: #2878b4;
+        }
+    </style>
+
+</head>
+
+<body>
+    <!-- 헤더 -->
+    <header class="site">
+        <div class="wrap">
+            <div class="bar">
+                <a class="brand" href="index.html"><img src="img/sub-flower.svg" alt=""><span>MOODIARY</span></a>
+                <div></div>
+                <!-- day.html - header 내 nav.main -->
+                <nav class="main">
+                    <a href="today-loding.html">Today</a>
+                    <a href="diary-loding.html" class="active">Diary</a>
+                    <a href="flower-loding.html">Flower</a>
+                </nav>
+
+                <div class="sound">
+                    <button id="soundToggle" aria-pressed="false">🔊 Sound (On)</button>
+                    <audio id="bgm" preload="auto" autoplay loop playsinline src="audio/temp.m4a"></audio>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ✿ custom cursor -->
+    <div id="cursor" class="flower-cursor" aria-hidden="true">✿</div>
+    <!-- 👇 스냅 컨테이너 시작 -->
+    <div class="snap-viewport">
+
+        <!-- 섹션 1: diary 달력 -->
+        <section id="snap-diary" class="snap-section">
+            <div id="diaryEmbed">
+                <section class="calendar" aria-label="달력 영역">
+                    <div class="cal-head">
+                        <div class="cal-hero" id="de_monthNum">08</div>
+                        <div class="cal-title">
+                            <span class="mname" id="de_monthName">August</span>
+                            <span class="year" id="de_yearText">2025</span>
+                        </div>
+                        <div class="cal-nav">
+                            <button class="btn" id="de_prev" aria-label="이전 달">&larr;</button>
+                            <button class="btn" id="de_todayBtn">오늘</button>
+                            <button class="btn" id="de_next" aria-label="다음 달">&rarr;</button>
+                        </div>
+                    </div>
+                    <div class="week">
+                        <div>SUN</div>
+                        <div>MON</div>
+                        <div>TUE</div>
+                        <div>WED</div>
+                        <div>THU</div>
+                        <div>FRI</div>
+                        <div>SAT</div>
+                    </div>
+                    <div id="de_grid" class="grid" role="grid" aria-label="달력 날짜 그리드"></div>
+                    <div class="cal-foot">
+                        <div>✿ 정원 사진 있음</div>
+                        <!-- 세션 1 하단 안내 -->
+                        <div class="scroll-hint">
+                            날짜를 클릭하거나, 스크롤을 내려주세요.
+                            <span class="arrow">⬇</span>
+                        </div>
+                    </div>
+
+                </section>
+            </div>
+
+
+        </section>
+
+        <!-- 섹션 2: 기존 day.html 메인 -->
+        <section id="snap-day" class="snap-section">
+            <!-- ↓↓↓ 아래에 '기존 <main> ... </main>' 전체를 그대로 옮겨 넣기 ↓↓↓ -->
+            <main>
+                <div class="grid3">
+                    <!-- 왼쪽 1:1 -->
+                    <div class="left-half">
+                        <!-- (1) 달력 -->
+                        <aside class="panel cal-area" style="grid-area:cal">
+                            <div class="panel-h">
+                                <span id="dateBadge" style="color:rgb(0, 0, 0);font-weight:500"></span>
+                                <div class="cal-nav">
+                                    <button class="btn" id="prevM">⟵</button>
+                                    <button class="btn" id="todayM">오늘</button>
+                                    <button class="btn" id="nextM">⟶</button>
+                                </div>
+                            </div>
+                            <div class="panel-b mini-cal">
+                                <!-- ⬆️ 상단: 달력 전체를 하나로 감싸서 1fr 영역에 꽉차게 -->
+                                <div class="mini-cal-top">
+                                    <div class="cal-head">
+                                        <div class="cal-title"><span id="mname">—</span> <span id="ytext"
+                                                style="color:#888;font-weight:800">—</span></div>
+                                        <button class="btn" id="goDiaryBtn">다이어리로 이동하기</button>
+
+                                    </div>
+                                    <div class="week">
+                                        <div>S</div>
+                                        <div>M</div>
+                                        <div>T</div>
+                                        <div>W</div>
+                                        <div>T</div>
+                                        <div>F</div>
+                                        <div>S</div>
+                                    </div>
+                                    <div id="calGrid" class="grid"></div>
+                                    <div id="leftInfo" class="empty-tip"></div>
+                                </div>
+                                <!-- ✅ 날짜별 메모 -->
+                                <div class="memo-area" aria-label="메모 영역">
+                                    <div class="memo-head">
+                                        <span class="memo-title">메모</span>
+
+                                    </div>
+                                    <textarea id="memoInput" class="memo-input" placeholder="오늘의 메모를 적어주세요."></textarea>
+                                    <div class="memo-actions">
+                                        <button class="btn" id="memoSaveBtn">저장</button>
+                                        <button class="btn" id="memoClearBtn">삭제</button>
+                                    </div>
+                                    <div id="memoSavedToast" class="memo-toast" role="status" aria-live="polite" hidden>
+                                        저장됐어요 ✓</div>
+                                </div>
+
+                            </div>
+                        </aside>
+
+                        <!-- (2) Card Description + Flower Card -->
+                        <section class="panel desc-area">
+                            <div class="panel-h">
+                                <span>Flower Card</span>
+                                <button class="btn" id="editTodayBtn">오늘기록 수정하기</button>
+                            </div>
+                            <div class="panel-b">
+                                <div class="desc-wrap">
+                                    <!-- 꽃카드(이동됨) -->
+                                    <div class="card" id="card">
+                                        <div class="card-art" id="cardArt">
+                                            <img id="flowerImg" alt="">
+                                            <img class="overlay-prop prop-0" id="prop0" style="display:none" alt="">
+                                            <img class="overlay-prop prop-1" id="prop1" style="display:none" alt="">
+                                        </div>
+                                        <h3 class="card-title" id="cardTitle"></h3>
+                                        <div class="card-quote" id="cardQuote">오늘의 한 줄 기분을 적어주세요.</div>
+                                        <div class="card-sub" id="cardSub"></div>
+                                    </div>
+                                    <!-- 설명 텍스트 -->
+                                    <p class="desc-text" id="descPanelText">오늘의 꽃을 선택하면 설명이 표시됩니다.</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- ※ “오늘의 기록” 패널은 요청대로 제거되었습니다 -->
+                    </div>
+
+                    <!-- 오른쪽: Garden Editor (그대로) -->
+                    <section class="panel editor-area">
+                        <div class="panel-h">
+                            <span>배경, 꽃, 소품을 클릭해 나만의 감정 공간을 꾸며보세요.</span>
+                            <div class="toolbar">
+                                <div style="display:flex;gap:8px">
+                                    <button class="btn" id="btnClear">비우기</button>
+                                    <button class="btn" id="btnDeselect">선택 해제</button>
+                                </div>
+                                <div style="display:flex;gap:8px">
+                                    <button class="btn" id="btnCapture">캡처 저장</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel-b">
+                            <div class="editor-wrap">
+                                <div class="canvas" id="canvas" aria-label="정원 편집 캔버스"></div>
+
+                                <div class="options-col" id="optionsCol">
+                                    <div id="secBg" class="panel-sec">
+                                        <h4 class="section-title">배경</h4>
+                                        <div class="thumbs" id="assetsBg"></div>
+                                    </div>
+                                    <div id="secFlowerWeather" class="panel-sec">
+                                        <div class="fw-row">
+                                            <!-- 왼쪽: 꽃 -->
+                                            <div class="fw-col">
+                                                <div class="fw-col-title">꽃</div>
+                                                <div class="thumbs" id="assetsFlowerCol"></div>
+                                            </div>
+                                            <!-- 오른쪽: 날씨 -->
+                                            <div class="fw-col">
+                                                <div class="fw-col-title">날씨</div>
+                                                <div class="thumbs" id="assetsWeatherCol"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="secProps" class="panel-sec">
+                                        <h4 class="section-title">소품</h4>
+                                        <div class="assets" id="assetsProps"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </section>
+    </div>
+    <div class="background-decor" id="backgroundDecor"></div>
+
+    <script>
+        /* MOODIARY — Global BGM (m4a, 이어듣기/음소거 상태 유지) */
+        (function () {
+            const audio = document.getElementById('bgm');
+            const btn = document.getElementById('soundToggle');
+
+            if (!audio || !btn) return;
+
+            // ✅ 모든 페이지에서 같은 키를 씁니다 (이미 쓰던 키와 호환)
+            const STATE_KEY = 'moodiary_bgm_state'; // 'on' | 'off'
+            const POS_KEY = 'moodiary_bgm_pos';   // 재생 위치(초)
+            const VOL_KEY = 'moodiary_bgm_vol';   // 0.0 ~ 1.0
+
+            // ✅ 파일 강제 통일
+            const DESIRED_SRC = 'audio/temp.m4a';
+            if (audio.getAttribute('src') !== DESIRED_SRC) audio.setAttribute('src', DESIRED_SRC);
+
+            // 버튼 라벨 동기화
+            function setBtn(on) {
+                btn.textContent = on ? '🔊 Sound (On)' : '🔈 Sound (Off)';
+                btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            }
+
+            // 부드러운 볼륨 페이드
+            const fps = 60;
+            function fadeTo(target = 0.35, ms = 800) {
+                target = Math.max(0, Math.min(1, target));
+                const step = (target - audio.volume) / (ms / (1000 / fps));
+                const t = setInterval(() => {
+                    audio.volume = Math.max(0, Math.min(1, audio.volume + step));
+                    if ((step > 0 && audio.volume >= target) || (step < 0 && audio.volume <= target)) {
+                        clearInterval(t);
+                        localStorage.setItem(VOL_KEY, String(audio.volume));
+                    }
+                }, 1000 / fps);
+            }
+
+            async function tryPlay() {
+                try {
+                    audio.muted = false;
+                    audio.volume = parseFloat(localStorage.getItem(VOL_KEY) || '0.30');
+                    await audio.play();
+                    setBtn(true);
+                    fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700);
+                } catch (e) {
+                    // 첫 사용자 제스처 전 자동재생이 막힌 경우: 한 번만 탭 이벤트로 언락
+                    setBtn(false);
+                    const unlock = async () => {
+                        try {
+                            await audio.play();
+                            setBtn(true);
+                            fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700);
+                        } catch { }
+                        finally {
+                            window.removeEventListener('pointerdown', unlock, { once: true });
+                        }
+                    };
+                    window.addEventListener('pointerdown', unlock, { once: true });
+                }
+            }
+
+            // ▶ 새 페이지에서 재생 위치 복원(이어듣기 핵심)
+            audio.addEventListener('loadedmetadata', () => {
+                const pos = parseFloat(localStorage.getItem(POS_KEY) || '0');
+                if (isFinite(pos) && pos > 0 && (!isFinite(audio.duration) || pos < audio.duration - 0.4)) {
+                    audio.currentTime = pos;
+                }
+            });
+
+            // ▶ 0.7초마다, 그리고 페이지 떠날 때 현재 위치 저장
+            const savePos = () => {
+                if (isFinite(audio.currentTime)) localStorage.setItem(POS_KEY, String(audio.currentTime));
+            };
+            const posTimer = setInterval(savePos, 700);
+            window.addEventListener('pagehide', savePos);
+
+            // ▶ 버튼 토글: 상태를 localStorage에 저장 → 다음 페이지에도 그대로 반영
+            btn.addEventListener('click', async () => {
+                if (audio.paused) {
+                    localStorage.setItem(STATE_KEY, 'on');
+                    await tryPlay();
+                } else {
+                    audio.pause();
+                    setBtn(false);
+                    localStorage.setItem(STATE_KEY, 'off');
+                }
+            });
+
+            // ▶ 첫 진입 시 상태/위치 반영
+            if ((localStorage.getItem(STATE_KEY) ?? 'on') === 'on') {
+                tryPlay();
+            } else {
+                setBtn(false);
+            }
+
+            // ▶ 탭을 다시 볼 때, 켜두었는데 멈춰 있으면 즉시 재개
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden && localStorage.getItem(STATE_KEY) === 'on' && audio.paused) {
+                    tryPlay();
+                }
+            });
+        })();
+    </script>
+
+    <!-- ✿ custom cursor -->
+    <script>
+        (function () {
+            const c = document.getElementById('cursor'); if (!c) return;
+            const move = (x, y) => { c.style.left = x + 'px'; c.style.top = y + 'px'; };
+            window.addEventListener('pointermove', e => move(e.clientX, e.clientY), { passive: true });
+            window.addEventListener('pointerdown', () => c.classList.add('active'));
+            window.addEventListener('pointerup', () => c.classList.remove('active'));
+            document.addEventListener('mouseleave', () => c.style.opacity = '0');
+            document.addEventListener('mouseenter', () => c.style.opacity = '1');
+        })();
+    </script>
+
+    <!-- today 연동 + 설명 매핑 -->
+    <script>
+        const EN_NAME = { 'hydrangea': 'HYDRANGEA', 'babybreath': "BABY'S BREATH", 'lavender': 'LAVENDER', 'freesia': 'FREESIA', 'daisy': 'DAISY', 'white-lily': 'WHITE LILY', 'lilac': 'LILAC', 'white-tulip': 'WHITE TULIP', 'sunflower': 'SUNFLOWER', 'peony': 'PEONY', 'forgetmenot': 'FORGET-ME-NOT', 'lotus': 'LOTUS' };
+        const FLOWER_DESC = { /* 기존 매핑 유지 */ };
+        const $ = (q, r = document) => r.querySelector(q); const $$ = (q, r = document) => Array.from(r.querySelectorAll(q));
+        const z = n => String(n).padStart(2, '0'); const fmt = d => `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+    </script>
+
+    <!-- today 데이터 브리지 + 카드 렌더 -->
+    <script>
+        const DataBridge = (function () {
+            const nz = n => String(n).padStart(2, '0');
+            const normalize = (x) => { if (!x) return ''; const m = String(x).trim().match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/); return m ? `${m[1]}-${nz(m[2])}-${nz(m[3])}` : ''; };
+            function readAny(dateStr) {
+                const out = { date: dateStr, quote: null, flower: null, props: [], bg: null, capture: null, desc: null, sub: null };
+                try {
+                    const raw = localStorage.getItem('moodiary_today');
+                    if (raw) {
+                        const v = JSON.parse(raw);
+                        const data = Array.isArray(v) ? (v.find(it => normalize(it?.date) === dateStr) || null) : (v[dateStr] || v[dateStr?.replace(/-/g, '.')] || v[dateStr?.replace(/-/g, '/')] || null);
+                        if (data) {
+                            out.quote = (data.oneLine || data.feeling || '').toString().trim() || null;
+                            out.sub = data.feeling || out.sub;
+                            if (Array.isArray(data.flowers) && data.flowers[0]) {
+                                const f = data.flowers[0]; const slug = f.slug || f.id || '';
+                                out.flower = { id: slug || null, name: EN_NAME[slug] || f.name || '', img: f.img || (slug ? `img/flowers/${slug}.svg` : undefined) };
+                            }
+                            if (Array.isArray(data.props)) out.props = data.props.slice(0, 2);
+                            if (data.desc) out.desc = data.desc;
+                            if (data.capture) out.capture = data.capture;
+                            if (data.weather) out.weather = data.weather;
+                        }
+                    }
+                } catch (e) { console.warn('today 데이터 파싱 실패', e); }
+                try {
+                    const keys = Object.keys(localStorage);
+                    for (const k of keys) {
+                        if (!k.endsWith(dateStr)) continue;
+                        const raw = localStorage.getItem(k); if (!raw) continue;
+                        let v = null; try { v = JSON.parse(raw); } catch { v = raw; }
+                        if (/capture/i.test(k) && typeof v === 'string' && v.startsWith('data:image')) out.capture = v;
+                    }
+                    const map = JSON.parse(localStorage.getItem('photos_by_date') || '{}');
+                    if (map[dateStr] && map[dateStr].length) out.capture = map[dateStr][map[dateStr].length - 1];
+                    const single = localStorage.getItem(`garden_capture_${dateStr}`); if (single) out.capture = single;
+                } catch (e) { console.warn(e); }
+                return out;
+            }
+            function bestDate() {
+                const keys = Object.keys(localStorage), dRe = /\d{4}-\d{2}-\d{2}$/; const dates = [];
+                for (const k of keys) { const m = k.match(dRe); if (m) dates.push(m[0]); }
+                dates.sort();
+                const t = new Date(), td = `${t.getFullYear()}-${z(t.getMonth() + 1)}-${z(t.getDate())}`;
+                return dates.includes(td) ? td : (dates.at(-1) || td);
+            }
+            return { readAny, bestDate };
+        })();
+
+        function renderCard(payload) {
+            const img = $('#flowerImg'), title = $('#cardTitle'), quote = $('#cardQuote'), sub = $('#cardSub');
+            const f = (payload.flowers && payload.flowers[0]) || (payload.flower ? { slug: payload.flower.id, name: payload.flower.name, img: payload.flower.img } : null);
+            if (f && (f.img || f.slug)) { img.src = f.img || `img/flowers/${f.slug}.svg`; img.style.display = 'block'; } else { img.removeAttribute('src'); img.style.display = 'none'; }
+            title.textContent = f ? (f.name || (f.slug ? f.slug.toUpperCase() : '오늘의 꽃')) : '✿';
+            quote.textContent = (payload.feeling && String(payload.feeling).trim()) ? payload.feeling : '오늘의 한 줄 기분을 적어주세요.';
+            sub.textContent = '';
+            let desc = payload.desc; const slug = f?.slug || payload?.flower?.id;
+            if (!desc && slug && FLOWER_DESC[slug]) desc = FLOWER_DESC[slug];
+            $('#descPanelText').textContent = desc || '';
+        }
+        function mapToCardPayload(d) {
+            if (!d || typeof d !== 'object') return { feeling: '', flowers: [], props: [], keywords: [], weather: null, desc: null };
+            const feeling = (d.quote || d.sub || '').toString().trim();
+            const flowers = d.flower ? [{
+                name: d.flower.name || '',
+                slug: d.flower.id || '',
+                img: d.flower.img || (d.flower.id ? `img/flowers/${d.flower.id}.svg` : '')
+            }] : [];
+            const props = Array.isArray(d.props) ? d.props.slice(0, 2) : [];
+            const keywords = Array.isArray(d.keywords) ? d.keywords : [];   // 👈 추가
+            const weather = d.weather || null;
+            return { feeling, flowers, props, keywords, weather, desc: d.desc };
+        }
+
+        function loadForDate(dateStr) {
+            const raw = DataBridge.readAny(dateStr);
+            const payload = mapToCardPayload(raw);
+            renderCard(payload);
+
+            // 👇 키워드 표시
+            const kwBox = document.getElementById('mdKeywords');
+            kwBox.innerHTML = '';
+            if (payload.keywords && payload.keywords.length) {
+                payload.keywords.forEach(k => {
+                    const chip = document.createElement('div');
+                    chip.className = 'chip';
+                    chip.textContent = k.label || k; // 객체면 label, 문자열이면 그대로
+                    kwBox.appendChild(chip);
+                });
+            }
+
+            document.getElementById('dateBadge').textContent = dateStr;
+            setCanvasFromCapture(dateStr);
+        }
+
+        // 🔎 달력 밑 메모 박스 렌더링 (정사각 박스 안에 4개 항목 고정 출력)
+        function renderMiniDetails(dateStr) {
+            const box = document.querySelector('.mini-details');
+            if (!box) return;
+
+            const raw = DataBridge.readAny(dateStr) || {};
+            // today.html 저장 구조 기준: oneLine, feeling, flowers[0], weather, desc :contentReference[oaicite:4]{index=4}
+
+            const oneLine = (raw.quote || '').trim();             // 오늘의 한줄 (oneLine을 DataBridge가 quote로 매핑)
+            const feeling = (raw.sub || '').trim();               // 감정(키워드 라벨)
+            const flowerName =
+                (raw.flower && (raw.flower.name || EN_NAME[raw.flower.id])) || '';
+            const weatherText = raw.weather ? (WEATHER_LABEL[raw.weather] || raw.weather) : '';
+
+            // 비어있어도 4줄 틀은 유지 → 사용자에게 어떤 항목이 비어있는지 명확
+            box.innerHTML = `
+      <div class="md-row">
+        <div class="md-label">오늘의 한줄</div>
+        <div class="md-val">${oneLine || '<span style="color:#aaa">—</span>'}</div>
+      </div>
+      <div class="md-row">
+        <div class="md-label">감정</div>
+        <div class="md-val">${feeling || '<span style="color:#aaa">—</span>'}</div>
+      </div>
+      <div class="md-row">
+        <div class="md-label">오늘의 꽃</div>
+        <div class="md-val">${flowerName || '<span style="color:#aaa">—</span>'}</div>
+      </div>
+      <div class="md-row">
+        <div class="md-label">선택한 날씨</div>
+        <div class="md-val">${weatherText || '<span style="color:#aaa">—</span>'}</div>
+      </div>
+    `;
+        }
+
+
+        // 🔁 기존 loadForDate 훅에 연결(이미 래핑했다면 생략)
+        if (typeof loadForDate === 'function') {
+            const __old = loadForDate;
+            window.loadForDate = function (dateStr) {
+                __old(dateStr);          // 기존 카드/에디터 렌더 유지
+                renderMiniDetails(dateStr); // 메모 박스 갱신
+            };
+        }
+
+        // ⏱ 첫 로드 시 기본 날짜로 한번 렌더
+        document.addEventListener('DOMContentLoaded', () => {
+            const def = DataBridge.bestDate();
+            renderMiniDetails(def);
+        });
+
+    </script>
+    <script>
+        /* ==== 날짜별 메모 저장소 ==== */
+        const MEMO_KEY_PREFIX = 'moodiary_memo_';
+        const memoEls = {
+            input: null, saveBtn: null, clearBtn: null, toast: null, dateLabel: null
+        };
+        function memoKey(dateStr) { return MEMO_KEY_PREFIX + dateStr; }
+        function getMemo(dateStr) { return localStorage.getItem(memoKey(dateStr)) || ''; }
+        function setMemo(dateStr, text) {
+            if (text?.trim()) localStorage.setItem(memoKey(dateStr), text.trim());
+            else localStorage.removeItem(memoKey(dateStr));
+        }
+        function hasMemo(dateStr) { return !!localStorage.getItem(memoKey(dateStr)); }
+
+        /* UI 업데이트 */
+        function updateMemoUI(dateStr) {
+            if (!memoEls.input) {
+                memoEls.input = document.getElementById('memoInput');
+                memoEls.saveBtn = document.getElementById('memoSaveBtn');
+                memoEls.clearBtn = document.getElementById('memoClearBtn');
+                memoEls.toast = document.getElementById('memoSavedToast');
+                memoEls.dateLabel = document.getElementById('memoDateLabel');
+
+                memoEls.saveBtn?.addEventListener('click', () => {
+                    const d = (document.getElementById('dateBadge')?.textContent || '').trim();
+                    setMemo(d, memoEls.input.value);
+                    showMemoToast();
+                    // 캘린더에 메모 아이콘 반영
+                    if (typeof refreshCalendarMemoIcons === 'function') refreshCalendarMemoIcons();
+                });
+                memoEls.clearBtn?.addEventListener('click', () => {
+                    const d = (document.getElementById('dateBadge')?.textContent || '').trim();
+                    setMemo(d, '');
+                    memoEls.input.value = '';
+                    if (typeof refreshCalendarMemoIcons === 'function') refreshCalendarMemoIcons();
+                });
+            }
+            if (memoEls.dateLabel) memoEls.dateLabel.textContent = dateStr;
+            if (memoEls.input) memoEls.input.value = getMemo(dateStr);
+        }
+
+        function showMemoToast() {
+            if (!memoEls.toast) return;
+            memoEls.toast.hidden = false;
+            clearTimeout(showMemoToast._t);
+            showMemoToast._t = setTimeout(() => memoEls.toast.hidden = true, 1200);
+        }
+    </script>
+
+    <!-- 좌측 달력/카드 렌더 -->
+    <script>
+        (function () {
+            const calGrid = $('#calGrid'), mname = $('#mname'), ytext = $('#ytext'), info = $('#leftInfo'), dateBadge = $('#dateBadge');
+            const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            let selDate = (new URL(location.href)).searchParams.get('date') || DataBridge.bestDate();
+            let cur = new Date(selDate);
+
+            function buildCalendar(d) {
+                calGrid.innerHTML = ''; const y = d.getFullYear(), m = d.getMonth();
+                mname.textContent = MONTHS[m]; ytext.textContent = y;
+                const first = new Date(y, m, 1), start = first.getDay(), last = new Date(y, m + 1, 0).getDate();
+                for (let i = 0; i < start; i++) { const div = document.createElement('div'); div.className = 'cell off'; calGrid.appendChild(div); }
+                for (let day = 1; day <= last; day++) {
+                    const dateStr = `${y}-${z(m + 1)}-${z(day)}`;
+                    const cell = document.createElement('button'); cell.className = 'cell'; cell.dataset.day = String(day);
+                    if (dateStr === fmt(new Date())) cell.classList.add('today');
+                    if (dateStr === selDate) cell.classList.add('sel');
+                    const data = DataBridge.readAny(dateStr);
+                    const hasRecord = !!(data.quote || data.flower || (data.props && data.props.length));
+                    const hasCapture = !!data.capture;
+                    if (hasRecord) {
+                        const flower = document.createElement('span');
+                        flower.className = 'mark-flower' + (hasCapture ? ' orange' : '');
+                        flower.textContent = '✿';
+                        cell.appendChild(flower);
+                    }
+                    cell.addEventListener('click', () => {
+                        selDate = dateStr;
+                        $$('.cell.sel', calGrid).forEach(c => c.classList.remove('sel'));
+                        cell.classList.add('sel');
+                        loadForDate(selDate);
+                        refreshOptions();
+                        syncHeadline(selDate);
+
+                        (function () {
+                            const calGrid = document.getElementById('calGrid');
+
+                            // 달력 칸 클릭 이벤트 수정
+                            calGrid?.addEventListener('click', (e) => {
+                                const cell = e.target.closest('.cell');
+                                if (!cell || cell.classList.contains('off')) return;
+
+                                // 기존 선택/렌더링 처리
+                                const dateStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${cell.dataset.day.padStart(2, '0')}`;
+                                window.loadForDate(dateStr);
+
+                                // ✅ 달력칸 클릭 시만 여백 추가
+                                document.querySelectorAll('.snap-section').forEach(sec => {
+                                    sec.style.scrollMarginTop = "calc(var(--header-h) + 20px)"; // 헤더 높이 + 추가 여백
+                                });
+
+                                // 약간의 부드러운 스크롤 (원하는 경우)
+                                document.getElementById('snap-day').scrollIntoView({ behavior: "smooth" });
+                            });
+
+                            // day.html 직접 진입 시 기본 여백 유지
+                            window.addEventListener("DOMContentLoaded", () => {
+                                document.querySelectorAll('.snap-section').forEach(sec => {
+                                    sec.style.scrollMarginTop = "var(--header-h)";
+                                });
+                            });
+                        })();
+                    });
+                    calGrid.appendChild(cell);
+                }
+                info.textContent = `기록을 클릭해 불러올 수 있어요. (${y}-${z(m + 1)})`;
+                dateBadge.textContent = selDate;
+            }
+
+            window.loadForDate = function (dateStr) {
+                const raw = DataBridge.readAny(dateStr);
+                const payload = mapToCardPayload(raw);
+                renderCard(payload);
+                dateBadge.textContent = dateStr;
+            };
+
+            $('#prevM').addEventListener('click', () => { cur.setMonth(cur.getMonth() - 1); buildCalendar(cur); });
+            $('#nextM').addEventListener('click', () => { cur.setMonth(cur.getMonth() + 1); buildCalendar(cur); });
+            $('#todayM').addEventListener('click', () => { const t = new Date(); cur = new Date(t); selDate = DataBridge.bestDate(); buildCalendar(cur); loadForDate(selDate); refreshOptions(); syncHeadline(selDate); });
+            $('#goDiaryBtn').addEventListener('click', () => location.href = 'day.html');
+
+            buildCalendar(cur);
+            loadForDate(selDate);
+            syncHeadline(selDate);
+
+            // ... (세션 2 미니 달력 IIFE 안쪽, buildCalendar 정의 바로 아래 등 적절한 곳)
+            window.showOnMiniCalendar = function (dateStr) {
+                try {
+                    // 1) 월 이동 + 선택 날짜 동기화
+                    selDate = dateStr;
+                    cur = new Date(dateStr);
+                    buildCalendar(cur);
+                    // 2) 카드/옵션/헤드라인 동기화
+                    loadForDate(selDate);
+                    refreshOptions();
+                    syncHeadline(selDate);
+                } catch (e) { console.warn('showOnMiniCalendar 오류', e); }
+            };
+        })();
+
+        const KOREAN_DAY = ['일', '월', '화', '수', '목', '금', '토'];
+        function toKDateStr(dStr) { const d = dStr ? new Date(dStr) : new Date(); if (isNaN(d)) return '—'; return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${KOREAN_DAY[d.getDay()]})`; }
+        function syncHeadline(dateStr) {
+            const el = document.getElementById('headlineDate');
+            if (!el) return;
+            el.textContent = toKDateStr(dateStr);
+            if (window.setNeighborLabels) window.setNeighborLabels(dateStr);
+        };
+
+        (function () {
+            const prevBtn = document.getElementById('prevDay');
+            const nextBtn = document.getElementById('nextDay');
+
+            function addDays(base, diff) {
+                const d = new Date(base); d.setDate(d.getDate() + diff);
+                const z = n => String(n).padStart(2, '0');
+                return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+            }
+
+            window.setNeighborLabels = function (currentDateStr) {
+                const prev = addDays(currentDateStr, -1);
+                const next = addDays(currentDateStr, +1);
+                const pv = new Date(prev), nx = new Date(next);
+                const short = dt => `${dt.getMonth() + 1}/${dt.getDate()}`;
+                if (prevBtn) prevBtn.textContent = `⟵ ${short(pv)}`;
+                if (nextBtn) nextBtn.textContent = `${short(nx)} ⟶`;
+            };
+
+            function changeDay(diff) {
+                const base = (document.getElementById('dateBadge')?.textContent || '').trim()
+                    || (function () { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+                const d = new Date(base); d.setDate(d.getDate() + diff);
+                const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+                loadForDate(next);
+                refreshOptions();
+                syncHeadline(next);
+                if (window.setNeighborLabels) window.setNeighborLabels(next);
+            }
+
+            prevBtn?.addEventListener('click', () => changeDay(-1));
+            nextBtn?.addEventListener('click', () => changeDay(1));
+
+            const initial = (document.getElementById('dateBadge')?.textContent || '').trim()
+                || (function () { const b = DataBridge.bestDate(); const badge = document.getElementById('dateBadge'); if (badge) badge.textContent = b; return b; })();
+            syncHeadline(initial);
+            if ((document.getElementById('headlineDate')?.textContent || '').trim() === '—') {
+                const d = (document.getElementById('dateBadge')?.textContent || '').trim() || fmt(new Date());
+                syncHeadline(d);
+            }
+            if (window.setNeighborLabels) window.setNeighborLabels((document.getElementById('dateBadge')?.textContent || '').trim() || fmt(new Date()));
+        })();
+    </script>
+
+    <!-- 옵션 렌더 (배경: SVG4, 썸네일 64×64 고정) -->
+    <script>
+        const BG_IMAGES = ['img/g/garden1.svg', 'img/g/garden2.svg', 'img/g/garden3.svg', 'img/g/garden4.svg'];
+        (function initStaticOptions() {
+            const canvas = $('#canvas'); const assetsBg = $('#assetsBg'); assetsBg.innerHTML = '';
+            BG_IMAGES.forEach(src => {
+                const b = document.createElement('button');
+                b.className = 'thumb'; b.innerHTML = `<img src="${src}" alt="배경">`;
+                b.addEventListener('click', () => { canvas.style.backgroundImage = `url('${src}')`; });
+                assetsBg.appendChild(b);
+            });
+        })();
+        // 커스텀 이미지(img/flowers2/xxx2.svg)를 '기본 꽃' 경로(img/flowers/xxx.svg)로 강제 변환
+        function baseFlowerSrc(slug, img) {
+            // slug가 가장 정확함
+            if (slug) return `img/flowers/${slug}.svg`;
+
+            // slug가 없고 img만 있을 때, 파일명에서 slug 유추
+            // 예: img/flowers2/babybreath2.svg → babybreath
+            if (img) {
+                const m = img.match(/flowers2\/(.+?)2\.svg$/);
+                if (m && m[1]) return `img/flowers/${m[1]}.svg`;
+            }
+            // 최후 폴백: 그대로 반환(깨져보이면 파일이 없다는 뜻)
+            return img || '';
+        }
+        /* ① 소품/날씨/꽃별 초기 크기 맵 */
+        const SIZE_MAP = {
+            // 소품
+            'grass.svg': 160,
+            'cloud.svg': 220,
+            'fence.svg': 200,
+            'star.svg': 70,
+            'butterfly.svg': 80,
+
+            // 날씨
+            'sun.svg': 120,
+            'rain.svg': 140,
+            'snow.svg': 160,
+            'cloudy.svg': 150,
+
+            // 꽃 (slug 기준도 지원)
+            'sunflower': 260,
+            'rose': 220,
+            'daisy': 200,
+        };
+
+        /* ② 파일명/슬러그에서 키 뽑기 */
+        function keyFromSrc(src) {
+            if (!src) return '';
+            // .../folder/name.svg → name.svg
+            const base = src.split('/').pop();
+            // name.svg → name
+            const name = (base || '').replace(/\.\w+$/, '');
+            return name;
+        }
+
+        /* ③ 초기 크기 계산(없으면 fallback 사용) */
+        function getInitWidth(srcOrSlug, fallback = 120) {
+            const key = keyFromSrc(srcOrSlug) || String(srcOrSlug);
+            if (SIZE_MAP[key] != null) return SIZE_MAP[key];
+            // slug로도 한 번 더 시도
+            if (SIZE_MAP[srcOrSlug] != null) return SIZE_MAP[srcOrSlug];
+            return fallback;
+        }
+
+        /* ④ addObj 래퍼: 항상 적절한 width로 호출 */
+        function placeObj(srcOrSlug, fallback = 120) {
+            const w = getInitWidth(srcOrSlug, fallback);
+            // addObj는 기존 그대로 사용 (옵션 width만 주입)
+            return addObj(srcOrSlug, { width: w });
+        }
+        function refreshOptions() {
+            const dateStr = (document.getElementById('dateBadge')?.textContent || '').trim();
+            const d = DataBridge.readAny(dateStr);
+            const payload = mapToCardPayload(d);
+
+            // ✅ 꽃(왼쪽)
+            const assetsFlowerCol = document.getElementById('assetsFlowerCol');
+            if (assetsFlowerCol) assetsFlowerCol.innerHTML = '';
+            const f = payload.flowers && payload.flowers[0];
+            if (assetsFlowerCol) {
+                const wrap = document.createElement('div'); wrap.className = 'thumbs'; // 내부 thumbs는 이미 64x64 그리드
+                // 실제 꽃 아이템 1개
+                if (f) {
+                    const baseSrc = baseFlowerSrc(f.slug, f.img);
+                    const btn = document.createElement('button');
+                    btn.className = 'thumb';
+                    btn.innerHTML = `<img src="${baseSrc}" alt="flower">`;
+                    // 꽃
+                    btn.addEventListener('click', () => addObj(baseSrc, { width: 200 }));
+
+                    // 날씨
+                    btn.addEventListener('click', () => addObj(wsrc, { width: 420 }));
+
+                    // 소품 (비슷하게 addObj 호출하는 부분 찾아서 수정)
+                    btn.addEventListener('click', () => addObj(psrc, { width: 80 }));
+                    assetsFlowerCol.appendChild(btn);
+                }
+                // 빈 칸 1개 (항상)
+                const blank1 = document.createElement('div');
+                blank1.className = 'thumb blank';
+                blank1.textContent = '';
+                assetsFlowerCol.appendChild(blank1);
+            }
+
+            // ✅ 날씨(오른쪽)
+            const assetsWeatherCol = document.getElementById('assetsWeatherCol');
+            if (assetsWeatherCol) assetsWeatherCol.innerHTML = '';
+            if (assetsWeatherCol) {
+                if (payload && payload.weather) {
+                    const wsrc = `img/weather/${payload.weather}.svg`;
+                    const btn = document.createElement('button');
+                    btn.className = 'thumb';
+                    btn.innerHTML = `<img src="${wsrc}" alt="${payload.weather}">`;
+                    btn.addEventListener('click', () => addObj(wsrc, { width: 320 }));
+                    assetsWeatherCol.appendChild(btn);
+                }
+                // 빈 칸 1개 (항상)
+                const blank2 = document.createElement('div');
+                blank2.className = 'thumb blank';
+                blank2.textContent = '';
+                assetsWeatherCol.appendChild(blank2);
+            }
+
+            // ✅ 소품(그대로 유지)
+            const assetsProps = document.getElementById('assetsProps');
+            if (assetsProps) {
+                assetsProps.innerHTML = '';
+                const picked = (payload.props || []);
+                if (picked.length) {
+                    const wrap = document.createElement('div'); wrap.className = 'thumbs'; assetsProps.appendChild(wrap);
+                    picked.forEach(slug => {
+                        for (let i = 1; i <= 4; i++) {
+                            const src = `img/sp/${slug}${i}.svg`;
+                            const b = document.createElement('button'); b.className = 'thumb';
+                            b.innerHTML = `<img src="${src}" alt="${slug}${i}">`;
+                            b.addEventListener('click', () => addObj(src, { width: 80 }));
+                            wrap.appendChild(b);
+                        }
+                    });
+                }
+
+                // 항상 보이는 고정 소품들
+                const FIXED_PROP_SLUGS = ['butterfly', 'fence', 'grass', 'star', 'cloud'];
+                const wrapFixed = document.createElement('div'); wrapFixed.className = 'thumbs';
+                FIXED_PROP_SLUGS.forEach(slug => {
+                    for (let i = 1; i <= 4; i++) {
+                        const src = `img/sp/${slug}${i}.svg`;
+                        const b = document.createElement('button'); b.className = 'thumb';
+                        b.innerHTML = `<img src="${src}" alt="${slug}${i}">`;
+                        b.addEventListener('click', () => addObj(src, { width: 80 }));
+                        wrapFixed.appendChild(b);
+                    }
+                });
+                assetsProps.appendChild(wrapFixed);
+            }
+        }
+
+    </script>
+
+    <!-- 에디터 코어 -->
+    <script>
+        (() => {
+            const $ = (q, r = document) => r.querySelector(q); const $$ = (q, r = document) => Array.from(r.querySelectorAll(q));
+            const canvas = $('#canvas'); let current = null, box = null, dragState = null;
+            window.addObj = function addObj(src, init = {}) { const img = new Image(); img.crossOrigin = 'anonymous'; img.decoding = 'async'; img.referrerPolicy = 'no-referrer'; img.draggable = false; img.className = 'obj'; img.onload = () => mountObj(img, init); img.onerror = () => mountObj(img, init); img.src = src; };
+            function mountObj(img, init) {
+                canvas.appendChild(img);
+
+                const cw = canvas.clientWidth || 800;
+                const ch = canvas.clientHeight || 500;
+                const base = Math.min(cw, ch);
+
+                // width/height 둘 다 지원 (둘 다 없으면 캔버스의 약 22%)
+                let w = (typeof init.width === 'number') ? init.width : null;
+                let h = (typeof init.height === 'number') ? init.height : null;
+
+                if (!w && !h) w = Math.round(base * 0.22); // 기본 크기 상향
+
+                // 사이즈 적용
+                img.style.position = 'absolute';
+                if (h && !w) {
+                    img.style.height = `${h}px`;
+                    img.style.width = 'auto';
+                } else {
+                    img.style.width = `${w}px`;
+                    img.style.height = 'auto';
+                }
+
+                // 센터 배치
+                const boxSize = h || w || Math.round(base * 0.22);
+                const x = (init.left ?? cw * 0.5 - boxSize * 0.5);
+                const y = (init.top ?? ch * 0.5 - boxSize * 0.5);
+                img.style.left = `${Math.max(0, Math.min(cw - boxSize, x))}px`;
+                img.style.top = `${Math.max(0, Math.min(ch - boxSize, y))}px`;
+
+                // 선택/편집툴 유지
+                if (typeof makeInteractive === 'function') makeInteractive(img);
+                if (typeof select === 'function') select(img);
+            }
+
+            function select(el) {
+                current = el; if (!box) {
+                    box = document.createElement('div'); box.className = 'selbox';
+                    ['nw', 'ne', 'sw', 'se', 'rot'].forEach(k => {
+                        const h = document.createElement('div');
+                        h.className = 'handle h-' + k;
+                        box.appendChild(h);
+                    });
+                    // ✕ 닫기 버튼 추가
+                    const closeBtn = document.createElement('div');
+                    closeBtn.className = 'handle h-close';
+                    closeBtn.textContent = '✕';
+                    box.appendChild(closeBtn);
+
+                    canvas.appendChild(box);
+
+                    box.querySelector('.h-rot').addEventListener('pointerdown', rotStart);
+                    box.querySelector('.h-se').addEventListener('pointerdown', rsStart('se'));
+                    box.querySelector('.h-nw').addEventListener('pointerdown', rsStart('nw'));
+                    box.querySelector('.h-ne').addEventListener('pointerdown', rsStart('ne'));
+                    box.querySelector('.h-sw').addEventListener('pointerdown', rsStart('sw'));
+
+                    // ✕ 클릭 시 삭제
+                    closeBtn.addEventListener('pointerdown', (e) => {
+                        e.preventDefault(); e.stopPropagation();
+                        deleteSelected();
+                    });
+                }
+
+                updateBox();
+            }
+            function deleteSelected() {
+                if (!current) return;
+                const toRemove = current;
+                deselect();           // 선택박스 숨기기
+                toRemove.remove();    // 이미지 제거
+                schedulePersist();    // 상태 저장(있으면)
+            }
+
+            /* 선택된 게 없어도 동작하도록 키보드 Delete/Backspace 지원(선택사항) */
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    if (current) { e.preventDefault(); deleteSelected(); }
+                }
+            });
+
+            /* 저장 로직: 프로젝트에 이미 저장 함수가 있으면 그것을 우선 호출 */
+            function schedulePersist() {
+                // 너의 기존 저장 훅이 있으면 그것부터
+                if (typeof window.saveGardenState === 'function') {
+                    try { window.saveGardenState(); return; } catch { }
+                }
+                // 없으면 인라인 백업 저장
+                try { persistStateInline(); } catch { }
+            }
+
+            /* 인라인 백업 저장: 현재 캔버스 상태를 localStorage에 저장 */
+            function persistStateInline() {
+                const STATE_KEY = (date) => `garden_state_${date}`;
+                const dateStr = (document.getElementById('dateBadge')?.textContent || '').trim();
+                if (!dateStr) return;
+
+                const items = Array.from(canvas.querySelectorAll('img.obj')).map(el => ({
+                    src: el.getAttribute('src'),
+                    left: parseFloat(el.style.left) || 0,
+                    top: parseFloat(el.style.top) || 0,
+                    width: parseFloat(el.style.width) || el.getBoundingClientRect().width,
+                    angle: getAngle(el) || 0
+                }));
+
+                const bg = (canvas.style.backgroundImage || '')
+                    .replace(/^url\(["']?/, '').replace(/["']?\)$/, '');
+
+                const state = { bg: bg || null, items };
+                localStorage.setItem(STATE_KEY(dateStr), JSON.stringify(state));
+
+                // 달력 ✿ 마크 업데이트(있으면 회색/주황 갱신)
+                try {
+                    const calGrid = document.getElementById('calGrid');
+                    const sel = calGrid?.querySelector('.cell.sel');
+                    if (sel) {
+                        let mark = sel.querySelector('.mark-flower');
+                        if (!mark && (items.length || bg)) {
+                            mark = document.createElement('span');
+                            mark.className = 'mark-flower';
+                            mark.textContent = '✿';
+                            sel.appendChild(mark);
+                        }
+                        // 캡처가 있을 때는 주황이지만, 여기서는 상태만 저장하므로 회색 유지
+                        if (mark) mark.classList.remove('orange');
+                    }
+                } catch { }
+            }
+
+            function deselect() { current = null; if (box) box.style.display = 'none'; }
+            document.getElementById('btnDeselect')?.addEventListener('click', deselect);
+            document.getElementById('btnClear')?.addEventListener('click', () => {
+                (() => {
+                    const canvas = document.getElementById('canvas');
+                    const calGrid = document.getElementById('calGrid');
+                    const STATE_KEY = (date) => `garden_state_${date}`;
+
+                    function saveEmptyState(dateStr) {
+                        localStorage.setItem(STATE_KEY(dateStr), JSON.stringify({ items: [] }));
+                    }
+
+                    function removeCapture(dateStr) {
+                        localStorage.removeItem(`garden_capture_${dateStr}`);
+                        try {
+                            const map = JSON.parse(localStorage.getItem('photos_by_date') || '{}');
+                            if (map[dateStr]) {
+                                delete map[dateStr];
+                                localStorage.setItem('photos_by_date', JSON.stringify(map));
+                            }
+                        } catch { }
+                    }
+
+                    function clearCanvasUI() {
+                        // 1) 오브젝트만 지우기
+                        Array.from(canvas.querySelectorAll('img')).forEach(el => el.remove());
+                        canvas.style.backgroundImage = 'none';
+
+                        // 2) 선택 해제 + 편집툴은 숨기기
+                        current = null;
+                        if (box) box.style.display = 'none';
+                    }
+
+                    function updateCalendarMarkToGray(dateStr) {
+                        const sel = calGrid?.querySelector('.cell.sel');
+                        if (!sel) return;
+                        const mark = sel.querySelector('.mark-flower');
+                        if (mark) mark.classList.remove('orange');
+                        if (!mark) {
+                            try {
+                                const data = (window.DataBridge && DataBridge.readAny) ? DataBridge.readAny(dateStr) : null;
+                                const hasRecord = !!(data && (data.quote || data.flower || (data.props && data.props.length)));
+                                if (hasRecord) {
+                                    const flower = document.createElement('span');
+                                    flower.className = 'mark-flower';
+                                    flower.textContent = '✿';
+                                    sel.appendChild(flower);
+                                }
+                            } catch { }
+                        }
+                    }
+
+                    document.getElementById('btnClear')?.addEventListener('click', () => {
+                        const dateStr = (document.getElementById('dateBadge')?.textContent || '').trim();
+                        if (!dateStr) return;
+
+                        clearCanvasUI();
+                        saveEmptyState(dateStr);
+                        removeCapture(dateStr);
+                        updateCalendarMarkToGray(dateStr);
+                    });
+                })();
+            });
+            canvas.addEventListener('pointerdown', e => { if (e.target === canvas) deselect(); });
+            function getAngle(el) { const m = new DOMMatrixReadOnly(getComputedStyle(el).transform); return Math.round(Math.atan2(m.b, m.a) * 180 / Math.PI); }
+            function updateBox() {
+                if (!current || !box) return;
+                box.style.display = 'block'; const r = current.getBoundingClientRect(); const rc = canvas.getBoundingClientRect();
+                const x = r.left - rc.left; const y = r.top - rc.top; box.style.width = r.width + 'px'; box.style.height = r.height + 'px'; box.style.left = x + 'px'; box.style.top = y + 'px'; box.style.transform = `rotate(${getAngle(current)}deg)`;
+            }
+            function makeInteractive(el) { el.addEventListener('pointerdown', (e) => { if (e.button !== 0) return; select(el); startDrag(el, e); }); }
+            function startDrag(el, e) {
+                e.preventDefault(); el.setPointerCapture(e.pointerId); el.classList.add('grab');
+                const r = el.getBoundingClientRect(); const rc = canvas.getBoundingClientRect();
+                dragState = { x: e.clientX, y: e.clientY, left: r.left - rc.left, top: r.top - rc.top, angle: getAngle(el) };
+                const move = (ev) => { const dx = ev.clientX - dragState.x; const dy = ev.clientY - dragState.y; el.style.left = (dragState.left + dx) + 'px'; el.style.top = (dragState.top + dy) + 'px'; el.style.transform = `translate(0,0) rotate(${dragState.angle}deg)`; updateBox(); };
+                const up = () => { el.releasePointerCapture(e.pointerId); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); el.classList.remove('grab'); };
+                window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+            }
+            function rsStart(corner) {
+                return function (e) {
+                    if (!current) return; e.preventDefault(); e.stopPropagation();
+                    const r = current.getBoundingClientRect(); const base = { w: r.width, h: r.height }; const orig = { x: e.clientX, y: e.clientY }; const keepRatio = !e.shiftKey;
+                    const sgnX = (corner === 'ne' || corner === 'se') ? 1 : -1; const sgnY = (corner === 'se' || corner === 'sw') ? 1 : -1;
+                    const move = (ev) => {
+                        const dx = (ev.clientX - orig.x) * sgnX; const dy = (ev.clientY - orig.y) * sgnY;
+                        let nw = Math.max(24, base.w + dx); let nh = Math.max(24, base.h + dy);
+                        if (keepRatio) { const ratio = Math.max(nw / base.w, nh / base.h); nw = base.w * ratio; nh = base.h * ratio; }
+                        current.style.width = nw + 'px'; current.style.height = 'auto'; updateBox();
+                    };
+                    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+                    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+                }
+            }
+            function rotStart(e) {
+                if (!current) return; e.preventDefault(); e.stopPropagation();
+                const rc = canvas.getBoundingClientRect(); const r = current.getBoundingClientRect();
+                const cx = r.left - rc.left + r.width / 2; const cy = r.top - rc.top + r.height / 2;
+                const move = (ev) => { const ang = Math.atan2((ev.clientY - rc.top) - cy, (ev.clientX - rc.left) - cx) * 180 / Math.PI; current.style.transform = `translate(0,0) rotate(${Math.round(ang)}deg)`; updateBox(); };
+                const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+                window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+            }
+        })();
+    </script>
+
+    <!-- 캡처 저장 → diary.html 해당 날짜로 이동 -->
+    <script>
+        /* ===== 캡처 저장 (꽃/소품 보이도록) ===== */
+        function markCalendarAsCaptured(dateStr) {
+            const calGrid = document.getElementById('calGrid');
+            if (!calGrid || !dateStr) return;
+
+            // 현재 선택된 날짜 셀(.cell.sel)을 우선 갱신
+            let sel = calGrid.querySelector('.cell.sel');
+
+            // 안전장치: 선택 셀 없으면 현재 그리드에서 해당 날짜 찾기
+            if (!sel) {
+                const [y, m, d] = dateStr.split('-');
+                // 같은 달일 때만 data-day로 찾기 (보여지는 달이 다르면 다음 build 때 자동 반영됨)
+                const gridMonth = document.getElementById('ytext')?.textContent;
+                const gridMName = document.getElementById('mname')?.textContent; // 'SEP' 같은 텍스트
+                // 같은 달 여부는 간단히 생략하고, 일치하는 data-day만 먼저 시도
+                sel = calGrid.querySelector(`.cell[data-day="${Number(d)}"]`);
+            }
+
+            if (!sel) return; // 현재 보이는 달이 아니면 이후 캘린더 리빌드시 자동 오렌지 처리됨
+
+            let mark = sel.querySelector('.mark-flower');
+            if (!mark) {
+                mark = document.createElement('span');
+                mark.className = 'mark-flower';
+                mark.textContent = '✿';
+                sel.appendChild(mark);
+            }
+            mark.classList.add('orange');   // 바로 오렌지 적용
+        }
+
+        (function () {
+            const $ = (q, r = document) => r.querySelector(q);
+
+            async function saveCapture(dataUrl, dateStr) {
+                // 1) 단일 키
+                localStorage.setItem(`garden_capture_${dateStr}`, dataUrl);
+
+                // 2) 날짜별 목록 맵 (diary가 읽는 키)
+                const map = JSON.parse(localStorage.getItem('photos_by_date') || '{}');
+                map[dateStr] = Array.isArray(map[dateStr]) ? map[dateStr] : [];
+                map[dateStr].push(dataUrl);
+                localStorage.setItem('photos_by_date', JSON.stringify(map));
+            }
+
+            // html2canvas 보정 옵션
+            async function takeShot(target) {
+                // 이미지가 모두 로드되도록 잠깐 양보
+                await new Promise(r => setTimeout(r, 30));
+                return await html2canvas(target, {
+                    useCORS: true,          // 외부/상대경로 이미지 허용
+                    allowTaint: false,
+                    backgroundColor: null,  // 투명 배경 유지
+                    scale: window.devicePixelRatio > 1 ? 2 : 1,
+                    logging: false
+                });
+            }
+
+            document.addEventListener('click', async (e) => {
+                if (e.target && e.target.id === 'btnCapture') {
+                    const canvasBox = $('#canvas');
+                    if (!canvasBox) { alert('캔버스가 없어요.'); return; }
+                    const dateStr = ($('#dateBadge')?.textContent || '').trim();
+                    if (!dateStr) { alert('날짜를 먼저 선택해 주세요.'); return; }
+
+                    try {
+                        const cvs = await takeShot(canvasBox);
+                        const dataUrl = cvs.toDataURL('image/png', 0.95);
+                        await saveCapture(dataUrl, dateStr);
+
+                        // ✅ 저장 직후 달력 아이콘을 오렌지로 즉시 갱신
+                        markCalendarAsCaptured(dateStr);
+
+                        // 저장 직후, 미리보기 갱신/다이어리 연결(선택)
+                        if (window.updateLastCaptureUI) updateLastCaptureUI(dateStr);
+                        alert('정원 캡처가 저장되었습니다.');
+                    } catch (err) {
+                        console.error(err);
+                        alert('캡처 저장 중 문제가 발생했어요.');
+                    }
+                }
+            });
+        })();
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const editBtn = document.getElementById("editTodayBtn");
+            if (editBtn) {
+                editBtn.addEventListener("click", () => {
+                    const date = document.getElementById("dateBadge").textContent || "";
+                    if (date) {
+                        // ✅ 1. 정원 에디터 비우기
+                        const canvas = document.getElementById("canvas");
+                        Array.from(canvas.querySelectorAll("img, .selbox")).forEach(el => el.remove());
+                        canvas.style.backgroundImage = "none";
+
+                        // ✅ 2. localStorage 상태 제거
+                        localStorage.removeItem(`garden_state_${date}`);
+                        localStorage.removeItem(`garden_capture_${date}`);
+                        try {
+                            const map = JSON.parse(localStorage.getItem("photos_by_date") || "{}");
+                            if (map[date]) {
+                                delete map[date];
+                                localStorage.setItem("photos_by_date", JSON.stringify(map));
+                            }
+                        } catch { }
+
+                        // ✅ 3. 달력 표시 갱신 (✿ 회색으로)
+                        const calGrid = document.getElementById("calGrid");
+                        const sel = calGrid?.querySelector(".cell.sel");
+                        if (sel) {
+                            const mark = sel.querySelector(".mark-flower");
+                            if (mark) mark.classList.remove("orange");
+                        }
+
+                        // ✅ 4. today.html로 이동 (날짜 파라미터 전달)
+                        location.href = `today.html?date=${encodeURIComponent(date)}`;
+                    } else {
+                        alert("수정할 날짜를 선택하세요.");
+                    }
+                });
+            }
+        });
+
+    </script>
+    <script>
+        /* ==== (A) 도우미 & 기록 구조화: diary.html 로직 이식 ==== */
+        const asArray = v => Array.isArray(v) ? v : (v == null ? [] : [v]);
+        const mergeU = (a, b) => Array.from(new Set([...(a || []), ...(b || [])]));
+        const normalize = (x) => {
+            if (!x) return '';
+            const m = String(x).trim().match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+            return m ? `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}` : '';
+        };
+
+        function getDayStructured(dateStr) {
+            const out = { oneLine: '', feeling: '', keywords: [], flowers: [], props: [], weather: [] };
+            const keys = ['moodiary_today', 'today_data', 'today', 'moodiary_session']; // today.html이 쓰는 저장소 우선 확인
+            for (const k of keys) {
+                try {
+                    const raw = localStorage.getItem(k);
+                    if (!raw) continue;
+                    const v = JSON.parse(raw);
+
+                    // 객체형 저장
+                    if (v && !Array.isArray(v)) {
+                        const data = v[dateStr] || v[dateStr.replace(/-/g, '.')] || v[dateStr.replace(/-/g, '/')] || null;
+                        if (data) {
+                            out.feeling = out.feeling || (data.feeling || data.emotion || '');
+                            out.keywords = mergeU(out.keywords, asArray(data.keywords || data.tags).filter(Boolean));
+                            out.flowers = mergeU(out.flowers,
+                                asArray(data.flowers || data.flowerCards || data.selected)
+                                    .map(f => typeof f === 'string' ? f : (f?.name || f?.title || '꽃'))
+                                    .filter(Boolean)
+                            );
+                            out.props = mergeU(out.props,
+                                asArray(data.props || data.items || data.accessories)
+                                    .map(x => typeof x === 'string' ? x : (x?.name || x?.title || '소품'))
+                                    .filter(Boolean)
+                            );
+                            if (data.weather) out.weather = mergeU(out.weather, [typeof data.weather === 'string' ? data.weather : (data.weather.slug || data.weather)]);
+                            out.oneLine = out.oneLine || String(data.oneLine || data.text || '').trim();
+                        }
+                    }
+
+                    // 배열형 저장
+                    if (Array.isArray(v)) {
+                        v.forEach(it => {
+                            const nd = normalize(it?.date || it?.createdAt || it?.updatedAt);
+                            if (nd !== dateStr) return;
+                            out.feeling = out.feeling || (it.emotion || it.feeling || '');
+                            out.keywords = mergeU(out.keywords, asArray(it.keywords || it.tags).filter(Boolean));
+                            out.flowers = mergeU(out.flowers,
+                                asArray(it.flowers || it.flowerCards || it.selected)
+                                    .map(f => typeof f === 'string' ? f : (f?.name || f?.title || '꽃'))
+                                    .filter(Boolean)
+                            );
+                            out.props = mergeU(out.props,
+                                asArray(it.props || it.items || it.accessories)
+                                    .map(x => typeof x === 'string' ? x : (x?.name || x?.title || '소품'))
+                                    .filter(Boolean)
+                            );
+                            if (it.weather) out.weather = mergeU(out.weather, [typeof it.weather === 'string' ? it.weather : (it.weather.slug || it.weather)]);
+                            if (it.text || it.oneLine || it.title) out.oneLine = out.oneLine || String(it.text || it.oneLine || it.title).trim();
+                        });
+                    }
+                } catch { }
+            }
+
+            // 한줄 기록 히스토리(옵션): 가장 최근 텍스트로 보강
+            try {
+                const std = JSON.parse(localStorage.getItem('moodiary_oneline_history') || 'null');
+                if (Array.isArray(std)) {
+                    const same = std.filter(v => normalize(v?.date) === dateStr && v?.text);
+                    if (same.length) out.oneLine = String(same[same.length - 1].text).trim();
+                }
+            } catch { }
+
+            // 💡 diary.html과 동일 보정 규칙
+            if ((!out.keywords || out.keywords.length === 0) && out.feeling) out.keywords = [out.feeling];
+            if (!out.oneLine && out.feeling) out.oneLine = out.feeling;
+
+            return out;
+        }
+
+        /* 꽃/소품 칩 아이콘 – diary.html과 동일 경로 우선순위 */
+        function iconImg(paths, alt, emoji) {
+            const box = document.createElement('span');
+            const img = document.createElement('img');
+            img.className = 'icon'; img.alt = alt || '';
+            if (!Array.isArray(paths)) paths = [paths];
+            let i = 0;
+            const tryNext = () => {
+                if (i >= paths.length) { box.textContent = emoji || '✿'; return; }
+                img.src = paths[i++]; img.onerror = tryNext;
+            };
+            tryNext(); box.appendChild(img); return box;
+        }
+        const FLOWERS = [
+            { image: 'img/flowers/hydrangea.svg', text: 'Hydrangea' },
+            { image: 'img/flowers/babybreath.svg', text: "Baby’s Breath" },
+            { image: 'img/flowers/lavender.svg', text: 'Lavender' },
+            { image: 'img/flowers/freesia.svg', text: 'Freesia' },
+            { image: 'img/flowers/daisy.svg', text: 'Daisy' },
+            { image: 'img/flowers/white-lily.svg', text: 'White Lily' },
+            { image: 'img/flowers/lilac.svg', text: 'Lilac' },
+            { image: 'img/flowers/white-tulip.svg', text: 'White Tulip' },
+            { image: 'img/flowers/sunflower.svg', text: 'Sunflower' },
+            { image: 'img/flowers/peony.svg', text: 'Peony' },
+            { image: 'img/flowers/forgetmenot.svg', text: 'Forget-me-not' },
+            { image: 'img/flowers/lotus.svg', text: 'Lotus' }
+        ];
+        const propEmojiMap = { star: '✨', butterfly: '🦋', rain: '🌧️', cloud: '☁️', fence: '🪵', grass: '🌿' };
+        function propIcon(name) {
+            const key = String(name || '').trim().toLowerCase();
+            const slug = key.replace(/\s+/g, '-');
+            const c = [`img/prop-icons/${slug}.svg`, `img/sp/${slug}.svg`];
+            return iconImg(c, name, propEmojiMap[key] || '✨');
+        }
+
+        /* 칩 렌더 */
+        function mountChips(el, arr, type) {
+            el.innerHTML = '';
+            if (!arr || !arr.length) { el.textContent = '—'; return; }
+            arr.slice(0, 24).forEach(t => {
+                const chip = document.createElement('span'); chip.className = 'chip';
+                if (type === 'flower') {
+                    const f = FLOWERS.find(f => f.text === String(t));
+                    if (f) { const img = document.createElement('img'); img.src = f.image; img.alt = f.text; img.className = 'icon'; chip.appendChild(img); }
+                    chip.appendChild(document.createTextNode(String(t)));
+                } else if (type === 'weather') {
+                    const slug = String(t);
+                    chip.appendChild(weatherIcon(slug));
+                    chip.appendChild(document.createTextNode(WEATHER_LABEL[slug] || slug));
+                } else if (type === 'prop') {
+                    chip.appendChild(propIcon(String(t)));
+                    chip.appendChild(document.createTextNode(String(t)));
+                } else {
+                    chip.textContent = String(t);
+                }
+                el.appendChild(chip);
+            });
+        }
+
+
+        /* ==== (B) 하단 요약 렌더 ==== */
+        function renderMiniDetails(dateStr) {
+            const data = getDayStructured(dateStr);
+            const $id = (x) => document.getElementById(x);
+
+            $id('mdOneLine').textContent = data.oneLine || '—';
+            mountChips($id('mdKeywords'), data.keywords, 'tag');
+            mountChips($id('mdFlowers'), data.flowers, 'flower');
+
+            const weatherArr = (data.weather && data.weather.length) ? data.weather : []; // today 저장은 slug 1개
+            if (weatherArr.length) {
+                mountChips($id('mdWeather'), weatherArr, 'weather');
+            } else {
+                // 구형 props가 있다면 임시로 보여주기 (호환)
+                mountChips($id('mdWeather'), data.props, 'prop');
+            }
+        }
+
+        /* ==== (C) 달력 이벤트에 연결: 날짜 선택/월 이동 시 갱신 ==== */
+        (function hookMiniDetails() {
+            // 초기 선택 날짜 = day.html이 사용하는 selDate / dateBadge를 참고
+            const badge = document.getElementById('dateBadge');
+            const initial = (badge?.textContent || '').trim();
+            if (initial) renderMiniDetails(initial);
+
+            // 전역 loadForDate는 이미 day.html에서 정의되어 있으므로, 그 뒤에 후킹
+            const _loadForDate = window.loadForDate;
+            window.loadForDate = function (dateStr) {
+                if (_loadForDate) _loadForDate(dateStr);
+                renderMiniDetails(dateStr);     // ⬅️ 날짜 바뀔 때 하단 요약 동기화
+            };
+
+            // 월 이동 버튼(오늘/이전/다음) 클릭 후에도 선택 셀을 기준으로 동기화
+            ['prevM', 'todayM', 'nextM'].forEach(id => {
+                const b = document.getElementById(id);
+                if (!b) return;
+                b.addEventListener('click', () => {
+                    // 버튼 처리 후 약간 늦게 현재 badge 기준으로 반영
+                    setTimeout(() => {
+                        const ds = (document.getElementById('dateBadge')?.textContent || '').trim();
+                        if (ds) renderMiniDetails(ds);
+                    }, 0);
+                });
+            });
+        })();
+    </script>
+    <script>
+        // 날씨 라벨/아이콘 (diary.html과 동일 컨벤션)
+        const WEATHER_LABEL = { sun: '햇빛', rain: '비', lightning: '번개', snow: '눈' };
+        const weatherEmoji = { sun: '☀️', rain: '🌧️', lightning: '⚡', snow: '❄️' };
+
+        function weatherIcon(slug) {
+            const box = document.createElement('span');
+            const img = document.createElement('img');
+            img.className = 'icon';
+            img.alt = WEATHER_LABEL[slug] || '날씨';
+            let tried = false;
+            img.onerror = () => { if (!tried) { tried = true; box.textContent = weatherEmoji[slug] || '☀️'; } };
+            img.src = `img/weather/${slug}.svg`;
+            box.appendChild(img);
+            return box;
+        }
+    </script>
+
+    <script>
+        /* ===== URL → DataURL 변환 ===== */
+        async function urlToDataURL(url) {
+            const res = await fetch(url, { mode: 'cors' });
+            const blob = await res.blob();
+            return await new Promise((resv) => {
+                const fr = new FileReader();
+                fr.onload = () => resv(fr.result);
+                fr.readAsDataURL(blob);
+            });
+        }
+
+        /* ===== 꽃/소품 스프라이트 추가 =====
+           - src: 'img/flowers/daisy.svg'처럼 상대경로
+           - type: 'flower' | 'prop' | 'bg'
+        */
+        async function addSpriteFromURL(type, src) {
+            try {
+                const dataUrl = await urlToDataURL(src);
+                const box = document.getElementById('canvas');
+                if (!box) return;
+
+                // 배경은 background-image로, 나머지는 <img>로
+                if (type === 'bg') {
+                    box.style.backgroundImage = `url('${dataUrl}')`;
+                    box.style.backgroundSize = 'cover';
+                    box.style.backgroundPosition = 'center';
+                    return;
+                }
+
+                const el = document.createElement('img');
+                el.className = `dr ${type}`;
+                el.draggable = false;
+                el.alt = type;
+                el.src = dataUrl;                 // ← DataURL 적용 (CORS 회피)
+                el.style.position = 'absolute';
+                el.style.left = '50%';
+                el.style.top = '50%';
+                el.style.transform = 'translate(-50%,-50%)';
+                el.style.width = '160px';
+                el.style.userSelect = 'none';
+                box.appendChild(el);
+
+                // (선택) 기존 드래그/리사이즈/회전 툴과 연동
+                if (window.attachEditorHandles) window.attachEditorHandles(el);
+            } catch (e) {
+                console.warn('이미지 로드 실패', e);
+                alert('이미지를 불러오지 못했어요.');
+            }
+        }
+
+        /* ===== 썸네일 클릭 바인딩 예시 =====
+           - 기존에 assets를 렌더링하는 코드가 있다면,
+             onClick에서 addSpriteFromURL을 호출하도록 바꿔주세요.
+        */
+        document.addEventListener('click', (e) => {
+            const t = e.target.closest('[data-asset-type][data-src]');
+            if (!t) return;
+            const type = t.getAttribute('data-asset-type');
+            const src = t.getAttribute('data-src');
+            addSpriteFromURL(type, src);
+        });
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const canvas = document.getElementById("canvas");
+
+            function restoreCapture(dateStr) {
+                if (!dateStr || !canvas) return;
+
+                // 1) 개별 키
+                let capture = localStorage.getItem(`garden_capture_${dateStr}`);
+
+                // 2) photos_by_date 맵
+                if (!capture) {
+                    try {
+                        const map = JSON.parse(localStorage.getItem("photos_by_date") || "{}");
+                        if (map[dateStr] && map[dateStr].length) {
+                            capture = map[dateStr][map[dateStr].length - 1];
+                        }
+                    } catch { }
+                }
+
+                // 3) 적용/초기화
+                if (capture && capture.startsWith("data:image")) {
+                    canvas.style.backgroundImage = `url(${capture})`;
+                    canvas.style.backgroundSize = "cover";
+                    canvas.style.backgroundPosition = "center";
+                } else {
+                    // ✅ 이 부분이 핵심: 해당 날짜 사진이 없으면 반드시 지움
+                    canvas.style.backgroundImage = "none";
+                }
+            }
+
+            // 초기 로드
+            const params = new URL(location.href).searchParams;
+            const initial = params.get("date") || DataBridge.bestDate();
+            restoreCapture(initial);
+
+            // 날짜 바뀔 때마다 갱신
+            window.loadForDate = (function (orig) {
+                return function (dateStr) {
+                    orig(dateStr);      // 기존 카드/텍스트 로드
+                    restoreCapture(dateStr); // ✅ 정원사진 갱신
+
+                    updateMemoUI(dateStr);
+                };
+            })(window.loadForDate);
+        });
+    </script>
+
+    <script>
+        (function () {
+            const canvas = document.getElementById('canvas');
+            let currentDate =
+                (new URL(location.href)).searchParams.get('date') ||
+                (window.DataBridge && DataBridge.bestDate && DataBridge.bestDate()) || '';
+
+            const STATE_KEY = (date) => `garden_state_${date}`;
+
+            function parseTransform(tx) {
+                const out = { rotate: 0, scale: 1 };
+                if (!tx) return out;
+                const rot = tx.match(/rotate\(([-\d.]+)deg\)/);
+                const sc = tx.match(/scale\(([-\d.]+)\)/);
+                if (rot) out.rotate = parseFloat(rot[1]) || 0;
+                if (sc) out.scale = parseFloat(sc[1]) || 1;
+                return out;
+            }
+
+            function serializeEl(el) {
+                const rect = el.getBoundingClientRect();
+                const parentRect = canvas.getBoundingClientRect();
+                const style = getComputedStyle(el);
+                const { rotate, scale } = parseTransform(style.transform);
+                const x = ((rect.left - parentRect.left) / parentRect.width) * 100;
+                const y = ((rect.top - parentRect.top) / parentRect.height) * 100;
+                const w = (rect.width / parentRect.width) * 100;
+                const h = (rect.height / parentRect.height) * 100;
+                const src = (el.getAttribute('src') || '').toString();
+                let type = 'item';
+                if (src.includes('/flowers/')) type = 'flower';
+                else if (src.includes('/sp/') || src.includes('/prop') || src.includes('/props/')) type = 'prop';
+                return {
+                    tag: 'img', type, src, x, y, w, h, rotate, scale,
+                    z: parseInt(style.zIndex || el.style.zIndex || 0, 10) || 0
+                };
+            }
+
+            function saveCanvasState(date) {
+                if (!date || !canvas) return;
+                const items = Array.from(canvas.querySelectorAll('img')).map(serializeEl);
+                localStorage.setItem(STATE_KEY(date), JSON.stringify({ items }));
+            }
+
+            function restoreCanvasState(date) {
+                if (!date || !canvas) return;
+                const raw = localStorage.getItem(STATE_KEY(date));
+                // 배경은 캡처/배경 복원 로직에서 따로 처리 → 오브젝트만 정리
+                Array.from(canvas.children).forEach(ch => { if (ch.tagName === 'IMG') ch.remove(); });
+                if (!raw) return;
+                try {
+                    const { items } = JSON.parse(raw) || {};
+                    if (!Array.isArray(items)) return;
+                    items.forEach(it => {
+                        if (it.tag !== 'img' || !it.src) return;
+                        const img = document.createElement('img');
+                        img.src = it.src; img.alt = it.type || 'item';
+                        img.style.position = 'absolute';
+                        img.style.left = `${it.x}%`; img.style.top = `${it.y}%`;
+                        img.style.width = `${it.w}%`; img.style.height = `${it.h}%`;
+                        img.style.objectFit = 'contain';
+                        img.style.transform = `rotate(${it.rotate || 0}deg) scale(${it.scale || 1})`;
+                        img.style.zIndex = String(it.z || 0);
+                        canvas.appendChild(img);
+                    });
+                } catch { }
+            }
+
+            // 초기 복원
+            restoreCanvasState(currentDate);
+
+            // 날짜가 바뀔 때마다: currentDate 업데이트 + 복원
+            if (window.loadForDate) {
+                const origLoad = window.loadForDate;
+                window.loadForDate = function (dateStr) {
+                    currentDate = dateStr;          // ✅ 최신 날짜로 갱신
+                    origLoad(dateStr);
+                    restoreCanvasState(dateStr);    // ✅ 오브젝트 복원
+                };
+            }
+
+            // 자동 저장: DOM 변경/조작 종료 시
+            function debounce(fn, ms = 250) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+            const debouncedSave = debounce(() => saveCanvasState(currentDate), 250);
+
+            const mo = new MutationObserver(() => debouncedSave());
+            mo.observe(canvas, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'src'] });
+            ['pointerup', 'mouseup', 'touchend'].forEach(ev => canvas.addEventListener(ev, () => debouncedSave(), { passive: true }));
+
+            // 캡처 버튼 눌러 저장할 때도 함께 저장
+            document.getElementById('btnCapture')?.addEventListener('click', () => saveCanvasState(currentDate));
+        })();
+    </script>
+    <script>
+        /* === 새 오늘기록이 저장된 날짜는, 캔버스를 ‘깨끗하게’ 초기화 === */
+
+        /** 날짜별 fresh-flag 키 */
+        const FRESH_KEY = (date) => `moodiary_fresh_${date}`;
+
+        /** 날짜별 상태/이미지 키 */
+        const CAPTURE_KEY = (date) => `garden_capture_${date}`;
+        const STATE_KEY = (date) => `garden_state_${date}`;
+
+        /** 정원 에디터/사진을 완전 초기화 */
+        function resetGardenFor(dateStr) {
+            const canvas = document.getElementById('canvas');
+            if (!dateStr || !canvas) return;
+
+            // 1) 에디터 오브젝트 제거
+            Array.from(canvas.children).forEach(ch => { if (ch.tagName === 'IMG') ch.remove(); });
+
+            // 2) 배경 초기화
+            canvas.style.backgroundImage = 'none';
+
+            // 3) 저장물 삭제: 캡처·상태·맵
+            localStorage.removeItem(CAPTURE_KEY(dateStr));     // 단일 캡처
+            localStorage.removeItem(STATE_KEY(dateStr));       // 오브젝트 상태
+
+            try {
+                const map = JSON.parse(localStorage.getItem('photos_by_date') || '{}');
+                if (map[dateStr]) {
+                    delete map[dateStr];
+                    localStorage.setItem('photos_by_date', JSON.stringify(map));
+                }
+            } catch { }
+        }
+        // 오늘기록 저장이 성공한 직후:
+        localStorage.setItem(`moodiary_reset_diary_${dateStr}`, '1');     // 초기화 플래그
+        location.href = `diary.html?date=${encodeURIComponent(dateStr)}&reset=1`;
+
+
+        /** fresh 플래그를 체크해, 있으면 초기화하고 플래그를 지움 */
+        function checkFreshAndMaybeReset(dateStr) {
+            const k = FRESH_KEY(dateStr);
+            if (localStorage.getItem(k) === '1') {
+                resetGardenFor(dateStr);
+                localStorage.removeItem(k);
+            }
+        }
+
+        /* 초기 진입 시점 */
+        document.addEventListener('DOMContentLoaded', () => {
+            const badge = document.getElementById('dateBadge');
+            const initialDate = (badge?.textContent || '').trim() ||
+                (window.DataBridge && DataBridge.bestDate && DataBridge.bestDate()) || '';
+            if (initialDate) checkFreshAndMaybeReset(initialDate);
+        });
+
+        /* 날짜가 바뀔 때도 체크: 기존 loadForDate를 래핑 */
+        (function hookLoadForDate() {
+            if (!window.loadForDate) return;
+            const orig = window.loadForDate;
+            window.loadForDate = function (dateStr) {
+                // 1) 새 오늘기록 플래그가 있으면 초기화
+                checkFreshAndMaybeReset(dateStr);
+
+                // 2) 원래 로직 실행 (카드/요약 렌더 등)
+                orig(dateStr);
+
+                // 3) 이후 restoreCapture/restoreCanvasState가 실행되면서
+                //    비워진 상태로 시작 → 사용자는 새 캔버스 꾸밀 수 있음
+                setCanvasFromCapture(dateStr);
+            };
+        })();
+        localStorage.setItem(`moodiary_fresh_${dateStr}`, '1');
+
+    </script>
+    <script>
+        /* 다이어리 입장 시 초기화 플래그가 있으면 해당 날짜 정원사진/상태 삭제 */
+        (function resetDiaryIfRequested() {
+            const nz = n => String(n).padStart(2, '0');
+            const fmt = d => `${d.getFullYear()}-${nz(d.getMonth() + 1)}-${nz(d.getDate())}`;
+
+            const url = new URL(location.href);
+            const p = url.searchParams;
+
+            // date 파라미터 없으면 오늘(또는 내부 bestDate 로직을 쓰고 있다면 그 값을 사용)
+            let dateStr = p.get('date');
+            if (!dateStr) {
+                const t = new Date();
+                dateStr = fmt(t);
+            }
+
+            const flagKey = `moodiary_reset_diary_${dateStr}`;
+            const shouldReset = p.get('reset') === '1' || localStorage.getItem(flagKey) === '1';
+            if (!shouldReset) return;
+
+            // 1) 단일 캡처 키 제거
+            localStorage.removeItem(`garden_capture_${dateStr}`);
+
+            // 2) 날짜별 캡처 맵에서 제거
+            try {
+                const map = JSON.parse(localStorage.getItem('photos_by_date') || '{}');
+                if (map[dateStr]) {
+                    delete map[dateStr];
+                    localStorage.setItem('photos_by_date', JSON.stringify(map));
+                }
+            } catch { }
+
+            // 3) (선택) 에디터 상태도 초기화하고 싶다면 같이 제거
+            localStorage.removeItem(`garden_state_${dateStr}`);
+
+            // 4) 플래그 소모
+            localStorage.removeItem(flagKey);
+        })();
+    </script>
+    <script>
+        (function addClouds() {
+            const container = document.getElementById("backgroundDecor");
+            const cloudImgs = [
+                "img/sp/cloud1.svg",
+                "img/sp/cloud2.svg",
+                "img/sp/cloud3.svg",
+                "img/sp/cloud4.svg"
+            ];
+
+            for (let i = 0; i < 8; i++) { // 구름 개수 (조금 늘림)
+                const img = document.createElement("img");
+                img.src = cloudImgs[Math.floor(Math.random() * cloudImgs.length)];
+                img.className = "cloud";
+
+                // 크기 (더 크게: 180~320px 랜덤)
+                const size = 180 + Math.random() * 140;
+                img.style.width = size + "px";
+
+                // 시작 높이 (0~70%)
+                img.style.top = Math.random() * 70 + "%";
+
+                // 시작 위치 (왼쪽 화면 밖)
+                img.style.left = (-300 - Math.random() * 200) + "px";
+
+                // 애니메이션 속도 (20~40초 랜덤)
+                const duration = 20 + Math.random() * 20;
+                img.style.animationDuration = duration + "s";
+
+                // 살짝 랜덤 딜레이 → 겹치지 않고 자연스럽게
+                img.style.animationDelay = (-Math.random() * duration) + "s";
+
+                container.appendChild(img);
+            }
+        })();
+    </script>
+    <script>
+        (function DiaryEmbedInit() {
+            // day.html에 이미 있는 유틸과 DataBridge를 사용합니다.
+            const z = n => String(n).padStart(2, '0');
+            const fmt = d => `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+            const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+            const $ = (q, r = document) => r.querySelector(q);
+            const $$ = (q, r = document) => Array.from(r.querySelectorAll(q));
+
+            const grid = $('#de_grid');
+            const mNum = $('#de_monthNum');
+            const mName = $('#de_monthName');
+            const yText = $('#de_yearText');
+            const rangeT = $('#de_rangeText');
+            const prev = $('#de_prev');
+            const next = $('#de_next');
+            const todayB = $('#de_todayBtn');
+
+            let todayISO = fmt(new Date());
+            let cur = new Date(todayISO);
+
+            function markInfoFor(dateStr) {
+                const d = (window.DataBridge && DataBridge.readAny) ? DataBridge.readAny(dateStr) : null;
+                if (!d) return { hasRecord: false, hasCapture: false };
+                const hasRecord = !!(d.quote || d.flower || (d.props && d.props.length));
+                const hasCapture = !!d.capture;
+                return { hasRecord, hasCapture };
+            }
+
+            function build(d) {
+                grid.innerHTML = '';
+                const y = d.getFullYear(), m = d.getMonth();
+                mNum.textContent = z(m + 1);
+                mName.textContent = MONTHS_EN[m];
+                yText.textContent = y;
+
+                const first = new Date(y, m, 1);
+                const start = first.getDay();
+                const last = new Date(y, m + 1, 0).getDate();
+
+                for (let i = 0; i < start; i++) {
+                    const div = document.createElement('div');
+                    div.className = 'cell off';
+                    grid.appendChild(div);
+                }
+
+                for (let day = 1; day <= last; day++) {
+                    const dateStr = `${y}-${z(m + 1)}-${z(day)}`;
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (dateStr === todayISO) cell.classList.add('today');
+
+                    // 날짜 숫자
+                    const btn = document.createElement('button');
+                    btn.className = 'date-number';
+                    btn.type = 'button';
+                    btn.textContent = String(day);
+                    btn.addEventListener('click', () => goToDay(dateStr));
+                    cell.appendChild(btn);
+
+                    // 표시(꽃/사진)
+                    const { hasRecord, hasCapture } = markInfoFor(dateStr);
+                    if (hasRecord) {
+                        const box = document.createElement('div');
+                        box.className = 'thumb-box' + (hasCapture ? '' : '');
+                        if (hasCapture) {
+                            // 사진이 있으면 작은 플라워 이모지
+                            box.textContent = '✿';
+                        }
+                        cell.appendChild(box);
+                    }
+
+                    grid.appendChild(cell);
+                }
+
+                rangeT.textContent = `${y}-${z(m + 1)}  (${z(1)} ~ ${z(last)})`;
+            }
+
+            function goToDay(dateStr) {
+                try {
+                    // ✅ 세션2 미니 달력 월/선택까지 즉시 반영
+                    if (typeof showOnMiniCalendar === 'function') { showOnMiniCalendar(dateStr); }
+
+                    // ✅ 카드/옵션/헤드라인도 해당 날짜로 동기화
+                    if (typeof loadForDate === 'function') { loadForDate(dateStr); }
+                } catch (e) { console.warn(e); }
+
+                // ✅ 마지막으로 세션2로 부드럽게 스크롤
+                const sec = document.getElementById('snap-day');
+                sec?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+
+            prev.addEventListener('click', () => { cur.setMonth(cur.getMonth() - 1); build(cur); });
+            next.addEventListener('click', () => { cur.setMonth(cur.getMonth() + 1); build(cur); });
+            todayB.addEventListener('click', () => { cur = new Date(); build(cur); });
+
+            build(cur);
+        })();
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (location.hash === "#snap-diary") {
+                const session1 = document.getElementById("snap-diary");
+                const session2 = document.getElementById("snap-day");
+
+                // 세션1 먼저 보이기
+                session1.scrollIntoView({ behavior: "instant", block: "start" });
+
+                // 1초 뒤 세션2로 부드럽게 이동
+                setTimeout(() => {
+                    session2.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 1000);
+            }
+        });
+    </script>
+    <script>
+        (() => {
+            // 안전하게 한 번만 붙이기
+            const grid = document.getElementById('de_grid');
+            if (!grid || grid.__moodiaryBound) return;
+            grid.__moodiaryBound = true;
+
+            const z = n => String(n).padStart(2, '0');
+
+            grid.addEventListener('click', (e) => {
+                // 칸 전체 어디를 눌러도 .cell을 찾도록 위임
+                const cell = e.target.closest('.cell');
+                if (!cell || cell.classList.contains('off')) return;
+
+                // day 추출: 우선 data-day, 없으면 숫자 span에서 텍스트
+                const day = cell.dataset.day
+                    || (cell.querySelector('.date-number')?.textContent || '').trim();
+                if (!day) return;
+
+                // year / month 추출: 세션1 헤더에서 읽기
+                const yEl = document.getElementById('de_yearText');   // 예: 2025
+                const mNumEl = document.getElementById('de_monthNum'); // 예: 08
+                const year = (yEl?.textContent || '').trim();
+                let month = (mNumEl?.textContent || '').trim();
+
+                // month가 1~12 같은 숫자라면 zero-pad, 아니라면 그대로 시도
+                if (/^\d{1,2}$/.test(month)) month = z(month);
+
+                const dateStr = `${year}-${month}-${z(day)}`;
+
+                // ✅ 세션2로 날짜 동기화
+                try {
+                    if (typeof showOnMiniCalendar === 'function') showOnMiniCalendar(dateStr);
+                    if (typeof loadForDate === 'function') loadForDate(dateStr);
+                    if (typeof refreshOptions === 'function') refreshOptions();
+                    if (typeof syncHeadline === 'function') syncHeadline(dateStr);
+                } catch (err) { console.warn('세션2 동기화 오류', err); }
+
+                // ✅ 세션2로 부드럽게 이동
+                document.getElementById('snap-day')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        })();
+    </script>
+
+
+    <script>
+        /** 헤더여백 제어: 기본/클릭모드 전환 */
+        (function () {
+            const BASE = 'var(--header-h)';
+            const EXTRA = 'calc(var(--header-h) + 20px)'; // 여백 늘리고 싶으면 여기 숫자만 조절
+
+            function setSnapMargins(mode) {
+                const val = (mode === 'clicked') ? EXTRA : BASE;
+                // 두 섹션 모두 적용
+                ['#snap-diary', '#snap-day'].forEach(id => {
+                    const el = document.querySelector(id);
+                    if (el) el.style.scrollMarginTop = val;
+                });
+                // 스냅 컨테이너 scroll-padding-top도 동일하게 보정(스냅 기준점 일치)
+                const vp = document.querySelector('.snap-viewport');
+                if (vp) vp.style.scrollPaddingTop = val;
+            }
+
+            // 1) 페이지를 직접 열었을 때(일반 진입) → 기본 여백 유지
+            document.addEventListener('DOMContentLoaded', () => setSnapMargins('default'));
+
+            // 2) 달력칸(.cell) 클릭 시만 → 여백을 추가해서 보이게
+            //    세션1(#de_grid) · 세션2(#calGrid) 둘 다 위임 처리
+            document.addEventListener('click', (e) => {
+                const cell = e.target.closest('.cell');
+                if (!cell) return;
+
+                // 달력 그리드 내부 클릭인지 확인 (세션1/세션2 모두 대응)
+                const inCalendar = cell.closest('#de_grid, #calGrid');
+                if (!inCalendar) return;
+
+                // 달력칸 클릭 → 여백 강화 모드
+                setSnapMargins('clicked');
+
+                // (선택) 세션2로 부드럽게 이동—이미 네가 그렇게 쓰고 있다면 유지
+                const snapDay = document.getElementById('snap-day');
+                if (snapDay) snapDay.scrollIntoView({ behavior: 'smooth' });
+            });
+        })();
+
+
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // 세션1(#snap-diary) 기본은 header 만큼만
+            const snapDiary = document.getElementById("snap-diary");
+            if (snapDiary) snapDiary.style.scrollMarginTop = "var(--header-h)";
+
+            // 달력 칸 클릭 시 → 세션1에 항상 header 만큼 margin 추가
+            document.addEventListener("click", (e) => {
+                const cell = e.target.closest(".cell");
+                if (!cell || cell.classList.contains("off")) return;
+
+                // 세션1에만 헤더바 만큼 margin 보장
+                if (snapDiary) {
+                    snapDiary.style.scrollMarginTop = "var(--header-h)";
+                }
+            });
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const canvas = document.getElementById("canvas");
+            const date = document.getElementById("dateBadge")?.textContent || "";
+
+            if (date && canvas) {
+                // localStorage에서 캡처된 정원 불러오기
+                const capture = localStorage.getItem(`garden_capture_${date}`);
+                if (capture && capture.startsWith("data:image")) {
+                    canvas.style.backgroundImage = `url(${capture})`;
+                    canvas.style.backgroundSize = "cover";
+                    canvas.style.backgroundPosition = "center";
+                }
+            }
+        });
+        // ✅ 캡처된 정원 사진을 캔버스 배경으로 표시
+        function setCanvasFromCapture(dateStr) {
+            const canvas = document.getElementById('canvas');
+            if (!canvas || !dateStr) return;
+
+            const cap = localStorage.getItem(`garden_capture_${dateStr}`);
+            if (cap && cap.startsWith('data:image')) {
+                canvas.style.backgroundImage = `url(${cap})`;
+                canvas.style.backgroundSize = 'cover';
+                canvas.style.backgroundPosition = 'center';
+            } else {
+                // 저장된 캡처가 없으면 배경 제거
+                canvas.style.backgroundImage = 'none';
+            }
+        }
+
+    </script>
+    <!-- ... 위쪽 다른 스크립트들 ... -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // dateBadge가 채워진 뒤 한 번 더 보정
+            requestAnimationFrame(() => {
+                const date = (document.getElementById('dateBadge')?.textContent || '').trim();
+                if (date) setCanvasFromCapture(date);
+            });
+        });
+    </script>
+    <!-- === [ADD-OVERRIDE] 세션1 아이콘 동기화 + 스냅 여백 일원화 === -->
+    <style>
+        /* 세션1(임베디드 달력)도 세션2처럼 코너 아이콘로 보이게 오버라이드 */
+        #diaryEmbed .thumb-box {
+            position: absolute !important;
+            right: 3px !important;
+            bottom: 3px !important;
+            width: auto !important;
+            height: auto !important;
+            border: none !important;
+            padding: 0 !important;
+            display: inline-grid !important;
+            place-items: center !important;
+            background: transparent !important;
+            font-size: 16px !important;
+            line-height: 1 !important;
+            color: var(--gray) !important;
+            /* 기본 회색 */
+        }
+
+        #diaryEmbed .thumb-box.orange {
+            color: var(--orange) !important;
+            /* 캡처(사진) 있으면 오렌지 */
+        }
+
+
+        /* 점(.) 숨김 */
+
+        /* 스냅 여백: 기본값은 CSS에서 지정되어 있으나, 아래 JS에서 최종 일원화 */
+    </style>
+
+    <script>
+        (function () {
+            /* =========================
+             *  A) 세션1 달력 아이콘 통일
+             *  - diaryEmbed 의 빌드는 기존대로 두고,
+             *    빌드 결과물(#de_grid) 안의 thumb-box 내용을 ✿/색상 규칙으로 정규화
+             * ========================= */
+            function normalizeDiaryMarks() {
+                const boxes = document.querySelectorAll('#de_grid .thumb-box');
+                boxes.forEach((box) => {
+                    // 기존 빌드가 '✿' (캡처 有) 또는 '·'(캡처 無)을 넣으므로, 내용 보고 색만 결정
+                    const hasCapture = (box.textContent && box.textContent.indexOf('✿') !== -1);
+                    box.textContent = '✿';                      // 모두 ✿로 통일
+                    box.classList.toggle('orange', hasCapture); // 캡처면 오렌지, 아니면 회색
+                });
+            }
+
+            // 그리드 변화를 감지해 매번 정규화
+            const deGrid = document.getElementById('de_grid');
+            if (deGrid) {
+                const mo = new MutationObserver(() => normalizeDiaryMarks());
+                mo.observe(deGrid, { childList: true, subtree: true });
+                // 초기 1회
+                normalizeDiaryMarks();
+            }
+
+            /* =========================
+             *  B) 스냅 섹션 top 여백 일원화
+             *  - 요구사항:
+             *    · 세션1은 더 큰 top 여백
+             *    · 세션2는 더 작은 top 여백
+             *    · 직접 진입/달력 클릭 모두 같은 결과(일관된 레이아웃)
+             * ========================= */
+            const SNAP1_TOP = 'calc(var(--header-h) + 24px)'; // 세션1(#snap-diary): header + 24px
+            const SNAP2_TOP = 'var(--header-h)';              // 세션2(#snap-day):   header
+
+            function applyUnifiedMargins() {
+                const s1 = document.getElementById('snap-diary');
+                const s2 = document.getElementById('snap-day');
+                const vp = document.querySelector('.snap-viewport');
+
+                if (s1) s1.style.scrollMarginTop = SNAP1_TOP;
+                if (s2) s2.style.scrollMarginTop = SNAP2_TOP;
+
+                // 스냅 기준은 보통 현재 보이는 섹션 기준으로 맞추는 게 부드러움: 세션2 기준(작은 값)으로 둠
+                if (vp) vp.style.scrollPaddingTop = SNAP2_TOP;
+            }
+
+            // 1) 페이지 직접 열었을 때
+            document.addEventListener('DOMContentLoaded', applyUnifiedMargins);
+
+            // 2) 달력 칸(.cell) 클릭으로 이동해도 동일하게 유지 (세션1/2 내부 캘린더 모두 위임)
+            document.addEventListener('click', (e) => {
+                const cell = e.target.closest('.cell');
+                if (!cell) return;
+                const inCalendar = cell.closest('#de_grid, #calGrid');
+                if (!inCalendar) return;
+                // 이동 전에 한번 더 보정(만일의 레이스컨디션 방지)
+                applyUnifiedMargins();
+            });
+
+        })();
+    </script>
+    <!-- === [/ADD-OVERRIDE] 끝 === -->
+    <!-- === [ADD-OVERRIDE] 세션1 아이콘 ✿ 동기화 + 스냅/스크롤 보정 === -->
+    <style>
+        /* (안전장치) 세션1에도 mark-flower 스타일이 적용되도록 크기만 살짝 통일 */
+        #diaryEmbed .mark-flower {
+            position: absolute;
+            right: 3px;
+            bottom: 3px;
+            font-size: 16px;
+            line-height: 1;
+        }
+    </style>
+    <script>
+        (function () {
+            /* ---------------------------
+             * A) 세션1 아이콘 교체: thumb-box → ✿.mark-flower
+             * --------------------------- */
+            function replaceThumbsWithMarks() {
+                const cells = document.querySelectorAll('#de_grid .cell');
+                cells.forEach(cell => {
+                    const box = cell.querySelector('.thumb-box');
+                    if (!box) return;
+                    const hasCapture = (box.textContent && box.textContent.indexOf('✿') !== -1);
+                    box.remove();
+
+                    const span = document.createElement('span');
+                    span.className = 'mark-flower' + (hasCapture ? ' orange' : '');
+                    span.textContent = '✿';
+                    cell.appendChild(span);
+                });
+            }
+
+            // de_grid가 다시 빌드될 때마다 자동 교체
+            const deGrid = document.getElementById('de_grid');
+            if (deGrid) {
+                const mo = new MutationObserver(() => replaceThumbsWithMarks());
+                mo.observe(deGrid, { childList: true, subtree: true });
+                // 초기 1회
+                replaceThumbsWithMarks();
+            }
+
+            /* ---------------------------
+             * B) 스냅/여백 규칙 고정
+             *   - 세션1: header + 24px
+             *   - 세션2: header
+             * --------------------------- */
+            function applySnapMargins() {
+                const s1 = document.getElementById('snap-diary');
+                const s2 = document.getElementById('snap-day');
+                const vp = document.querySelector('.snap-viewport');
+                if (s1) s1.style.scrollMarginTop = 'calc(var(--header-h) + 24px)';
+                if (s2) s2.style.scrollMarginTop = 'var(--header-h)';
+                if (vp) vp.style.scrollPaddingTop = 'var(--header-h)';
+            }
+            document.addEventListener('DOMContentLoaded', applySnapMargins);
+
+            /* ---------------------------
+             * C) 달력 날짜 클릭 시:
+             *   - 세션2로 스무스 이동
+             *   - 살짝 더 아래로(오프셋) 내려주기
+             * --------------------------- */
+            function smoothGoToSession2WithOffset() {
+                const vp = document.querySelector('.snap-viewport');
+                const target = document.getElementById('snap-day');
+                if (!target) return;
+                // 먼저 세션2의 시작으로 스크롤
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // 약간의 오프셋(아래로 24px) 추가
+                setTimeout(() => {
+                    if (vp) vp.scrollBy({ top: 24, left: 0, behavior: 'smooth' });
+                }, 280);
+
+            }
+
+            // 세션1/세션2 달력의 날짜 클릭 모두에 적용
+            document.addEventListener('click', (e) => {
+                const cell = e.target.closest('.cell');
+                if (!cell || cell.classList.contains('off')) return;
+
+                // (가독성) 여백 규칙 한번 더 보정
+                applySnapMargins();
+
+                // 날짜 클릭이면 세션2로 이동 + 살짝 더 아래
+                // (세션1 큰 달력(#de_grid) or 세션2 미니 달력(#calGrid) 모두 포함)
+                if (cell.closest('#de_grid, #calGrid')) {
+                    smoothGoToSession2WithOffset();
+                }
+            });
+        })();
+    </script>
+    <!-- === [/ADD-OVERRIDE] 끝 === -->
+    <script>
+        // 달력 밑 메모 박스 렌더링 함수
+        function renderMiniDetails(dateStr) {
+            const box = document.querySelector('.mini-details');
+            if (!box) return;
+
+            const raw = DataBridge.readAny(dateStr); // today.html 데이터 읽기
+            box.innerHTML = ''; // 초기화
+
+            if (!raw || (!raw.quote && !raw.flower && (!raw.props || !raw.props.length))) {
+                box.innerHTML = '<p style="font-size:13px;color:#888">아직 기록이 없어요.</p>';
+                return;
+            }
+
+            // 기분 한 줄
+            if (raw.quote) {
+                const row = document.createElement('div');
+                row.className = 'md-row';
+                row.innerHTML = `<div class="md-label">한 줄</div><div class="md-val">${raw.quote}</div>`;
+                box.appendChild(row);
+            }
+
+            // 키워드
+            if (raw.keywords && raw.keywords.length) {
+                const row = document.createElement('div');
+                row.className = 'md-row';
+                row.innerHTML = `<div class="md-label">키워드</div><div class="md-val chips" id="mdKeywords"></div>`;
+                box.appendChild(row);
+
+                raw.keywords.forEach(k => {
+                    const chip = document.createElement('div');
+                    chip.className = 'chip';
+                    chip.textContent = k.label || k;
+                    row.querySelector('#mdKeywords').appendChild(chip);
+                });
+            }
+
+            // 선택한 꽃
+            if (raw.flower) {
+                const row = document.createElement('div');
+                row.className = 'md-row';
+                row.innerHTML = `<div class="md-label">오늘 꽃</div>
+                             <div class="md-val">${raw.flower.name || EN_NAME[raw.flower.id] || ''}</div>`;
+                box.appendChild(row);
+            }
+
+            // 소품/날씨
+            if (raw.props && raw.props.length) {
+                const row = document.createElement('div');
+                row.className = 'md-row';
+                row.innerHTML = `<div class="md-label">소품</div>
+                             <div class="md-val">${raw.props.map(p => p.name || p).join(', ')}</div>`;
+                box.appendChild(row);
+            }
+        }
+
+        // 기존 loadForDate 안에서 호출되도록 연결
+        const _oldLoadForDate = loadForDate;
+        loadForDate = function (dateStr) {
+            _oldLoadForDate(dateStr);  // 기존 카드 렌더
+            renderMiniDetails(dateStr); // 달력 밑 메모도 갱신
+        };
+
+        // 페이지 첫 로딩 시 기본 날짜 불러오기
+        document.addEventListener('DOMContentLoaded', () => {
+            const def = DataBridge.bestDate();
+            renderMiniDetails(def);
+        });
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+            // 오늘 날짜로 카드/정원 불러오기
+            if (typeof loadForDate === "function") {
+                loadForDate(todayStr);
+            }
+
+            // 달력에서 오늘 셀 선택 표시
+            const calGrid = document.getElementById("calGrid");
+            if (calGrid) {
+                const todayCell = Array.from(calGrid.querySelectorAll(".cell"))
+                    .find(c => c.textContent.trim() === String(today.getDate()));
+                if (todayCell) {
+                    calGrid.querySelectorAll(".cell.sel").forEach(c => c.classList.remove("sel"));
+                    todayCell.classList.add("sel");
+                }
+            }
+
+            // dateBadge 갱신
+            const dateBadge = document.getElementById("dateBadge");
+            if (dateBadge) {
+                dateBadge.textContent = todayStr;
+            }
+
+            // 상단 헤드라인 날짜도 갱신
+            if (typeof syncHeadline === "function") {
+                syncHeadline(todayStr);
+            }
+        });
+    </script>
+    <!-- HTML (예시: 선택자만 맞춰 쓰세요) -->
+    <div id="gardenEditor">
+        <div id="gardenStage">
+            <!-- 오브젝트들이 이 안에 append 됩니다 -->
+        </div>
+    </div>
+
+    <style>
+        /* 편집 박스 UI */
+        .edit-box {
+            position: absolute;
+            border: 2px dashed rgba(0, 0, 0, 0.35);
+            border-radius: 10px;
+            pointer-events: none;
+            /* 클릭은 대상 오브젝트가 받게 */
+            z-index: 9999;
+            box-sizing: border-box;
+            outline: 1px solid rgba(255, 255, 255, 0.6);
+            outline-offset: -4px;
+        }
+
+        .edit-handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border: 2px solid rgba(0, 0, 0, 0.6);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: auto;
+            /* 핸들은 직접 잡을 수 있게 */
+            cursor: nwse-resize;
+        }
+
+        .edit-handle.tl {
+            top: 0%;
+            left: 0%;
+        }
+
+        .edit-handle.tr {
+            top: 0%;
+            left: 100%;
+        }
+
+        .edit-handle.bl {
+            top: 100%;
+            left: 0%;
+        }
+
+        .edit-handle.br {
+            top: 100%;
+            left: 100%;
+        }
+
+        .edit-delete {
+            position: absolute;
+            top: -16px;
+            right: -16px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #ff4d4f;
+            color: #fff;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            pointer-events: auto;
+            /* 삭제 버튼은 클릭 가능 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        /* Stage 안 오브젝트 공통 클래스 (필수) */
+        #gardenStage .g-obj {
+            position: absolute;
+            /* 자유 배치 가정 */
+            transform-origin: center center;
+            user-select: none;
+            cursor: pointer;
+        }
+    </style>
+
+    <script>
+        (() => {
+            // === 선택자: 프로젝트 구조에 맞게 바꾸세요 ===
+            const editor = document.getElementById('gardenEditor');
+            const stage = document.getElementById('gardenStage');
+            const btnClear = document.getElementById('btnClearGarden');
+
+            // ---------------------------
+            // Selection UI (재사용 1개만)
+            // ---------------------------
+            const Selection = {
+                box: null,
+                target: null,
+
+                ensure() {
+                    if (this.box) return;
+                    const box = document.createElement('div');
+                    box.className = 'edit-box';
+                    box.style.display = 'none';
+
+                    // 핸들 4개
+                    ['tl', 'tr', 'bl', 'br'].forEach(pos => {
+                        const h = document.createElement('div');
+                        h.className = 'edit-handle ' + pos;
+                        box.appendChild(h);
+                    });
+
+                    // 삭제 버튼 (요청하셨던 X표시)
+                    const del = document.createElement('button');
+                    del.className = 'edit-delete';
+                    del.type = 'button';
+                    del.innerText = '×';
+                    del.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (this.target && this.target.parentNode) {
+                            this.target.parentNode.removeChild(this.target);
+                        }
+                        this.clear(); // 대상 사라졌으니 편집툴 숨김
+                    });
+                    box.appendChild(del);
+
+                    editor.appendChild(box);
+                    this.box = box;
+
+                    // (선택) 리사이즈/드래그 로직을 이미 갖고 계시면 여기에 연결하세요.
+                    // 여기서는 편집틀 "다시 뜨는" 동작에 집중합니다.
+                },
+
+                attach(el) {
+                    this.ensure();
+                    this.target = el;
+                    this.updatePosition();
+                    this.box.style.display = 'block';
+                },
+
+                clear() {
+                    this.target = null;
+                    if (this.box) this.box.style.display = 'none';
+                },
+
+                updatePosition() {
+                    if (!this.box || !this.target) return;
+                    // 에디터를 기준으로 타깃의 위치/크기 계산
+                    const editorRect = editor.getBoundingClientRect();
+                    const rect = this.target.getBoundingClientRect();
+                    const left = rect.left - editorRect.left + editor.scrollLeft;
+                    const top = rect.top - editorRect.top + editor.scrollTop;
+
+                    this.box.style.left = left + 'px';
+                    this.box.style.top = top + 'px';
+                    this.box.style.width = rect.width + 'px';
+                    this.box.style.height = rect.height + 'px';
+                }
+            };
+
+            // 스크롤/리사이즈에도 박스 위치 보정
+            window.addEventListener('resize', () => Selection.updatePosition(), { passive: true });
+            editor.addEventListener('scroll', () => Selection.updatePosition(), { passive: true });
+
+            // --------------------------------
+            // 1) 정원 클릭 이벤트 위임 (핵심)
+            // --------------------------------
+            stage.addEventListener('click', (e) => {
+                const obj = e.target.closest('.g-obj');
+                if (!obj) return;           // 빈 곳 클릭이면 무시
+                Selection.attach(obj);      // 편집툴 "붙이기"
+            });
+
+            // --------------------------------
+            // 2) "비우기" 동작 (핵심)
+            // --------------------------------
+            btnClear.addEventListener('click', () => {
+                stage.innerHTML = '';        // 정원 오브젝트 전체 제거
+                Selection.clear();           // 편집툴은 파괴하지 말고 "숨김"만!
+            });
+
+            // --------------------------------
+            // 3) 팔레트에서 오브젝트 추가 예시
+            //    (추가 후 즉시 클릭하면 편집툴이 다시 뜸)
+            // --------------------------------
+            document.querySelectorAll('.palette').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // 예시 오브젝트 생성
+                    const kind = btn.dataset.kind || 'obj';
+                    const el = document.createElement('div');
+                    el.className = 'g-obj';
+                    el.textContent = kind === 'flower' ? '🌸' : kind === 'stone' ? '🪨' : '🧩';
+
+                    // 임시 위치/크기 (프로젝트 로직대로 배치하세요)
+                    const x = 40 + Math.random() * 200;
+                    const y = 40 + Math.random() * 120;
+                    el.style.left = x + 'px';
+                    el.style.top = y + 'px';
+                    el.style.fontSize = '48px';
+
+                    stage.appendChild(el);
+
+                    // 방금 추가한 걸 바로 선택 상태로 만들고 싶다면:
+                    Selection.attach(el);
+                });
+            });
+
+            // --------------------------------
+            // 4) 외부에서 오브젝트가 추가/이동/리사이즈 되어도
+            //    편집틀 위치가 바로 반영되도록 옵저버 (선택)
+            // --------------------------------
+            const mo = new MutationObserver(() => Selection.updatePosition());
+            mo.observe(stage, { attributes: true, childList: true, subtree: true });
+        })();
+    </script>
+
+
+</body>
+
+</html>

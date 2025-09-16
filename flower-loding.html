@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MOODIARY – Flower Loading (fast)</title>
+
+    <!-- 폰트 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css"
+        crossorigin>
+
+    <!-- 매우 작은 사전 힌트(있으면 좋고 없어도 동작함) -->
+    <link rel="preload" as="image" href="img/lo/lo1.svg">
+    <link rel="preload" as="image" href="img/lo/lo2.svg">
+    <link rel="preload" as="image" href="img/lo/lo3.svg">
+    <link rel="preload" as="image" href="img/lo/lo4.svg">
+    <link rel="preload" as="image" href="img/lo/lo5.svg">
+
+    <style>
+        :root {
+            --ink: #111;
+            --muted: #666;
+            --bg: #fff;
+            --side: clamp(16px, 3.5vw, 40px);
+            --row-size: 200px;
+            --icon-size: 80px;
+            --piece-size: var(--icon-size);
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%
+        }
+
+        html {
+            scroll-behavior: smooth
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: Pretendard, system-ui, -apple-system, BlinkMacSystemFont, Inter, sans-serif;
+            overflow: hidden;
+            line-height: 1.55;
+            cursor: none;
+        }
+
+        .hint {
+            position: fixed;
+            left: var(--side);
+            top: var(--side);
+            font-size: 18px;
+            color: #000;
+            opacity: .6;
+            user-select: none;
+            pointer-events: none;
+            letter-spacing: .02em;
+        }
+
+        .stage {
+            position: relative;
+            width: 100%;
+            height: 100%
+        }
+
+        .selector-row {
+            position: absolute;
+            left: 50%;
+            top: 14vh;
+            transform: translateX(-50%);
+            height: var(--row-size);
+            display: flex;
+            align-items: center;
+            gap: min(5vw, 40px);
+            z-index: 5;
+            padding: 0 var(--side);
+        }
+
+        .pick {
+            width: var(--icon-size);
+            height: var(--icon-size);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            transition: transform .15s ease;
+            border: none;
+            background: transparent;
+            outline: 0;
+            padding: 0;
+        }
+
+        .pick:active {
+            transform: none
+        }
+
+        .pick img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block
+        }
+
+        .pick.done {
+            cursor: default
+        }
+
+        .pile {
+            position: absolute;
+            inset: 0;
+            overflow: hidden
+        }
+
+        .piece {
+            position: absolute;
+            width: var(--piece-size);
+            height: var(--piece-size);
+            will-change: transform;
+            pointer-events: none;
+            user-select: none;
+            transform-origin: center center;
+            /* 그림자 제거로 페인트 비용 절감 */
+            /* filter: drop-shadow(0 2px 0 rgba(0,0,0,.07)); */
+        }
+
+        .piece img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block
+        }
+
+        @media (max-width:768px) {
+            :root {
+                --icon-size: 82px;
+                --piece-size: var(--icon-size);
+                --row-size: 96px
+            }
+
+            .hint {
+                font-size: 14px
+            }
+        }
+
+        .flower-cursor {
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 9999;
+            pointer-events: none;
+            user-select: none;
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            font-size: 24px;
+            line-height: 1;
+            transform: translate(-50%, -50%);
+        }
+
+        .flower-cursor::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border: 2px solid #111;
+            border-radius: 999px;
+            box-sizing: border-box;
+        }
+
+        .flower-cursor.active {
+            font-size: 26px
+        }
+    </style>
+
+    <!-- Matter.js (defer로 파서 블로킹 방지) -->
+    <script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js" defer></script>
+</head>
+
+<body>
+    <div class="stage" id="stage">
+        <div class="selector-row" id="selectorRow" aria-label="아이콘 선택"></div>
+        <div class="pile" id="pile"></div>
+    </div>
+
+    <script>
+        // Matter.js 스크립트가 defer 로딩되므로 DOMContentLoaded 이후 보장
+        window.addEventListener('DOMContentLoaded', () => {
+            "use strict";
+
+            // ===== 설정 =====
+            const NEXT_URL = "flower.html";
+            const IMG_BASE = "img/lo/";
+            const IMG_EXT = ".svg";
+            const TOTAL = 5;
+
+            const stage = document.getElementById("stage");
+            const row = document.getElementById("selectorRow");
+            const pile = document.getElementById("pile");
+            const filled = Array(TOTAL).fill(false);
+            const picks = [];
+
+            // ===== Matter.js 엔진 구성(경량화) =====
+            const { Engine, World, Bodies, Runner, Body } = Matter;
+            const engine = Engine.create({ enableSleeping: true });
+            const world = engine.world;
+            world.gravity.y = 1.05; // 살짝 낮춰 연산 완화
+
+            // 타이밍 스케일로 연산량 살짝 줄임(체감 거의 없음, 성능 이득)
+            engine.timing.timeScale = 0.98;
+
+            const runner = Runner.create({
+                // 기본 runner 사용. 필요 시 fps 제한 가능
+                // delta: 1000/60
+            });
+            Runner.run(runner, engine);
+
+            // ===== 경계 생성 =====
+            let walls = [];
+            function buildBounds() {
+                if (walls.length) { World.remove(world, walls); walls = []; }
+                const W = stage.clientWidth, H = stage.clientHeight, thick = 80;
+                const ground = Bodies.rectangle(W / 2, H + thick / 2, W + thick * 2, thick, { isStatic: true, friction: 1 });
+                const left = Bodies.rectangle(-thick / 2, H / 2, thick, H, { isStatic: true });
+                const right = Bodies.rectangle(W + thick / 2, H / 2, thick, H, { isStatic: true });
+                walls = [ground, left, right];
+                World.add(world, walls);
+            }
+            buildBounds();
+            window.addEventListener("resize", buildBounds);
+
+            // ===== 유틸 =====
+            const rand = (min, max) => Math.random() * (max - min) + min;
+            const pieceSizePx = () =>
+                parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--piece-size")) || 78;
+
+            function selectorY() {
+                const r = row.getBoundingClientRect();
+                const s = stage.getBoundingClientRect();
+                const sz = pieceSizePx();
+                return r.top - s.top + sz / 2;
+            }
+
+            // ===== 파편 생성(경량 파라미터) =====
+            const items = new Set();
+            function spawnPiece(i, startX, startY) {
+                const size = pieceSizePx(), radius = size * 0.46;
+
+                const el = document.createElement("div");
+                el.className = "piece";
+
+                const img = document.createElement("img");
+                img.alt = `shape ${i + 1}`;
+                img.decoding = "async";
+                img.loading = "lazy";
+                img.src = `${IMG_BASE}lo${i + 1}${IMG_EXT}`;
+                el.appendChild(img);
+                pile.appendChild(el);
+
+                const body = Bodies.circle(startX, startY, radius, {
+                    restitution: 0.10,
+                    friction: 0.30,
+                    frictionStatic: 0.50,
+                    frictionAir: 0.001, // ↓ 공기 저항 줄여 CPU 연산 경감
+                    density: 0.0015     // ↓ 질량 감소로 충돌 계산 완화
+                });
+                Body.rotate(body, rand(-0.5, 0.5));
+                Body.applyForce(body, body.position, { x: rand(-0.002, 0.002), y: 0 });
+                World.add(world, body);
+                items.add({ el, body, size });
+            }
+
+            // ===== 렌더 루프 =====
+            (function sync() {
+                // transform만 업데이트 → 레이아웃/페인트 최소화
+                for (const { el, body, size } of items) {
+                    const x = body.position.x - size / 2;
+                    const y = body.position.y - size / 2;
+                    el.style.transform = `translate(${x.toFixed(2)}px,${y.toFixed(2)}px) rotate(${body.angle}rad)`;
+                }
+                requestAnimationFrame(sync);
+            })();
+
+            // ===== 선택 썸네일 렌더 =====
+            function renderSelector() {
+                for (let i = 0; i < TOTAL; i++) {
+                    const btn = document.createElement("button");
+                    btn.className = "pick";
+                    btn.dataset.index = String(i);
+                    btn.setAttribute("aria-pressed", "false");
+
+                    const img = document.createElement("img");
+                    img.alt = `outline ${i + 1}`;
+                    img.decoding = "async";
+                    img.loading = "lazy";
+                    img.src = `${IMG_BASE}lo${i + 1}-1${IMG_EXT}`;
+                    btn.appendChild(img);
+
+                    btn.addEventListener("click", onPick);
+                    row.appendChild(btn);
+                    picks.push(btn);
+                }
+            }
+
+            function onPick(e) {
+                const btn = e.currentTarget;
+                const i = Number(btn.dataset.index);
+                if (filled[i]) return;
+
+                const img = btn.querySelector("img");
+                img.src = `${IMG_BASE}lo${i + 1}${IMG_EXT}`;
+                btn.classList.add("done");
+                btn.setAttribute("aria-pressed", "true");
+                filled[i] = true;
+
+                const W = stage.clientWidth;
+                const x = rand(40, W - 40);
+                const y = selectorY();
+                spawnPiece(i, x, y);
+
+                if (filled.every(Boolean)) {
+                    // 애니메이션 마무리 약간만 기다렸다가 이동
+                    setTimeout(() => location.href = NEXT_URL, 700);
+                }
+            }
+
+            // ===== 초기 파편 시딩(경량: 30개 고정) =====
+            function seedPile() {
+                const W = stage.clientWidth, H = stage.clientHeight;
+                const count = 30; // 항상 최소 개수로 고정 → 초기 로딩 가볍게
+                for (let k = 0; k < count; k++) {
+                    const i = k % TOTAL;
+                    const x = rand(40, W - 40);
+                    const yStart = H * 0.2; // 너무 높지 않게
+                    spawnPiece(i, x, yStart);
+                }
+            }
+
+            renderSelector();
+            requestAnimationFrame(seedPile);
+
+            // ===== 항상 자동 클릭 실행(더 빠르게) =====
+            (function autoClick() {
+                let idx = 0;
+                const interval = setInterval(() => {
+                    if (idx < picks.length) {
+                        picks[idx].click();
+                        idx++;
+                    } else {
+                        clearInterval(interval);
+                    }
+                }, 200); // 0.2초 간격 → 약 1초 내 완주
+            })();
+
+            // ===== 꽃 커서(경량) =====
+            (function () {
+                const c = document.createElement('div');
+                c.className = 'flower-cursor';
+                c.textContent = '✿';
+                document.body.appendChild(c);
+                let x = 0, y = 0, tx = 0, ty = 0;
+                document.addEventListener('mousemove', e => { x = e.clientX; y = e.clientY; });
+                document.addEventListener('mouseover', e => {
+                    if (e.target.closest('a,button')) c.classList.add('active'); else c.classList.remove('active');
+                });
+                (function loop() {
+                    tx += (x - tx) * 0.25; ty += (y - ty) * 0.25;
+                    c.style.transform = `translate(${tx}px,${ty}px) translate(-50%,-50%)`;
+                    requestAnimationFrame(loop);
+                })();
+            })();
+        });
+    </script>
+</body>
+
+</html>
