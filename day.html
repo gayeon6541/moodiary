@@ -4350,6 +4350,7 @@
         const emSubject = document.getElementById('emSubject');
         const emClose = document.querySelector('#emailModal .em-close');
         const emDownload = document.getElementById('emDownloadPng');
+        const canvasBox  = document.getElementById('canvas'); // ← 여기서만 선언
 
         // 모달 닫기
         emClose?.addEventListener('click', closeEmailModal);
@@ -4363,54 +4364,59 @@
             a.click();
         });
 
-        // 캡처 저장(자동 다운로드 금지) → 모달 미리보기로 띄우기
-        btnCapture?.addEventListener('click', async () => {
-            const canvasBox = document.getElementById('canvas');
-            if (!canvasBox || !window.html2canvas) return;
+        async function takeShot(target) {
+            // 1️⃣ 모든 오브젝트 transform → top/left로 고정
+            const objs = target.querySelectorAll('img, .object, .item, [data-obj]');
+            const restore = [];
+            objs.forEach(el => {
+                const style = getComputedStyle(el);
+                const tr = style.transform;
+                const pos = el.getBoundingClientRect();
+                const parent = target.getBoundingClientRect();
+                const left = pos.left - parent.left;
+                const top = pos.top - parent.top;
+                restore.push({ el, tr });
+                el.style.transform = 'none';
+                el.style.left = left + 'px';
+                el.style.top = top + 'px';
+                el.style.position = 'absolute';
+            });
 
-            // CORS 대비
-            ensureCanvasImagesCORS();
+            // 2️⃣ html2canvas 캡처
+            const canvas = await html2canvas(target, {
+                backgroundColor: null,
+                useCORS: true,
+                scale: 2,
+                logging: false,
+                allowTaint: true,
+            });
 
-            // 캡처 시 보조 UI 숨김
+            // 3️⃣ transform 복원
+            restore.forEach(({ el, tr }) => {
+                el.style.transform = tr;
+            });
+
+            return canvas;
+        }
+
+        btnCapture.addEventListener('click', async () => {
+            document.body.style.cursor = 'default';
             canvasBox.setAttribute('data-capturing', '1');
 
-            try {
-                const shot = await html2canvas(canvasBox, {
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: null,
-                    scale: 2,
-                    logging: false
-                });
+            const cvs = await takeShot(canvasBox);
+            const dataUrl = cvs.toDataURL('image/png', 0.95);
 
-                const dataUrl = shot.toDataURL('image/png', 0.95);
-                const dateStr = currentDateStr();
+            canvasBox.removeAttribute('data-capturing');
 
-                // 앱이 읽는 저장소 키들로 저장 (달력/섬네일 등에서 재활용됨)
-                saveCaptureToLocal(dataUrl, dateStr);
-
-                // 미리보기 반영 + 제목 자동 채우기
-                if (emPreview) emPreview.src = dataUrl;
-                if (emSubject && !emSubject.value) {
-                    emSubject.value = `MOODIARY 감정 공간 - ${dateStr}`;
-                }
-
-                // 메일 버튼 활성화
-                if (btnEmail) btnEmail.disabled = false;
-
-                // ✨ 자동 다운로드는 하지 않고, 모달 열어줌
-                openEmailModal();
-
-            } catch (e) {
-                console.warn('캡처 실패', e);
-                alert('캡처에 실패했어요. 다시 시도해 주세요.');
-            } finally {
-                canvasBox.removeAttribute('data-capturing');
+            const emPreview = document.getElementById('emPreview');
+            const emailModal = document.getElementById('emailModal');
+            if (emPreview && emailModal) {
+                emPreview.src = dataUrl;
+                emailModal.style.display = 'flex';
             }
-        });
 
-        // “메일로 보내기” 버튼을 눌러도 모달 열리도록(작성 편의)
-        btnEmail?.addEventListener('click', openEmailModal);
+            console.log('캡처 완료');
+        });
     </script>
 
 </body>
