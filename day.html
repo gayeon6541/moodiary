@@ -68,8 +68,9 @@
             color: var(--ink);
             font-family: Pretendard, system-ui, -apple-system, BlinkMacSystemFont, Inter, sans-serif;
             line-height: 1.55;
-            cursor: none
+            /* cursor: none;  ← 이 줄 삭제 또는 주석처리 */
         }
+
 
         /* ===== 헤더 ===== */
         /* day.html */
@@ -775,63 +776,33 @@
             display: block;
         }
 
-        /* ☁️ 배경용 컨테이너 */
-        .background-decor {
-            position: fixed;
-            inset: 0;
-            overflow: hidden;
-            z-index: -1;
-            /* 화면 제일 뒤에 */
-        }
-
-        /* ☁️ 구름 스타일 */
-        .cloud {
-            position: absolute;
-            opacity: 0.85;
-            animation: floatCloud linear infinite;
-            will-change: transform;
-        }
-
-        /* 기본 애니메이션 경로 */
-        @keyframes floatCloud {
-            0% {
-                transform: translateX(-250px) translateY(0);
-            }
-
-            50% {
-                transform: translateX(60vw) translateY(-15px);
-            }
-
-            100% {
-                transform: translateX(120vw) translateY(0);
-            }
-        }
-
+        /* 페이지는 한 화면 고정, 헤더 높이 제외 */
         body {
-            margin: 0;
             overflow: hidden;
-            /* 스크롤 안 보이게 */
         }
 
         main {
             min-height: calc(100vh - var(--header-h));
+            height: calc(100vh - var(--header-h));
+            /* 세로 딱 맞춤 */
             display: flex;
             align-items: center;
-            /* 세로 가운데 */
+            /* 세로 중앙 */
             justify-content: center;
-            /* 가로 가운데 */
+            /* 가로 중앙 */
             padding: 0 var(--side);
-            /* 위아래 여백 제거 */
         }
 
         .grid3 {
-            max-height: calc(100vh - var(--header-h));
             width: 100%;
+            max-height: calc(100vh - var(--header-h));
         }
 
         .panel {
             height: 100%;
         }
+
+        /* 에디터/좌측 패널 내부 스크롤은 panel-b에서 처리 */
     </style>
     <style>
         /* === Scroll Snap 컨테이너 === */
@@ -846,17 +817,6 @@
 
         /* 기존에 숨김 유지 */
 
-        .snap-viewport {
-            height: 100vh;
-            overflow-y: auto;
-            scroll-snap-type: y mandatory;
-        }
-
-        .snap-section {
-            min-height: 100vh;
-            scroll-snap-align: start;
-            display: block;
-        }
 
         /* 세션 1, 세션 2 내용 상단 여백 추가 */
         /* 1) 섹션 상단 패딩 제거 */
@@ -1160,6 +1120,11 @@
             display: none !important;
         }
 
+        #canvas[data-capturing="1"] img {
+            filter: none !important;
+            opacity: 1 !important;
+        }
+
         /* 선택박스 우상단 X 버튼 */
         .handle.h-close {
             right: -26px;
@@ -1234,6 +1199,153 @@
             font-size: 12px;
             color: #2878b4;
         }
+
+        /* --- 임시 오버라이드: 세션1 제거 + 한 화면 정렬 --- */
+        #snap-diary {
+            display: none !important;
+        }
+
+
+        .snap-section {
+            min-height: auto !important;
+        }
+
+        /* === grid3 세로 중앙 여백 보정 === */
+        main {
+            padding-top: 0 !important;
+            /* 위 여백 제거 */
+            padding-bottom: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            /* 세로 가운데 */
+            justify-content: center !important;
+            /* 가로 가운데 */
+            min-height: calc(100vh - var(--header-h)) !important;
+            height: calc(100vh - var(--header-h)) !important;
+        }
+
+        .grid3 {
+            margin: 0 auto;
+            /* 좌우 중앙 */
+        }
+
+        .snap-viewport {
+            scroll-snap-type: none !important;
+        }
+
+        .snap-viewport {
+            scroll-snap-type: none !important;
+            overflow-y: hidden !important;
+            /* 필요시 auto 대신 hidden */
+        }
+
+        .snap-section {
+            scroll-snap-align: none !important;
+            min-height: auto !important;
+        }
+
+        /* 미니 달력 날짜 숫자 보이게 */
+        .cal-area .date-number {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            font-size: 12px;
+            /* 부모 .cell의 font-size:0 무시 */
+            font-weight: 400;
+            color: rgb(188, 188, 188);
+            line-height: 1;
+            pointer-events: none;
+            /* 숫자 위 클릭도 셀로 전달 */
+        }
+
+        #cardTitle {
+            display: none !important;
+        }
+
+        #emailModal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .35);
+            display: none;
+            z-index: 9999;
+        }
+
+        #emailModal .em-wrap {
+            width: min(520px, 92vw);
+            background: #fff;
+            border: 0.5px solid #111;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, .15);
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            max-height: 85vh
+        }
+
+        #emailModal .em-head,
+        .em-foot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 0.5px dashed #111;
+            background: #fff
+        }
+
+        #emailModal .em-foot {
+            border-top: 0.5px dashed #111;
+            border-bottom: 0
+        }
+
+        #emailModal .em-close {
+            border: 0.5px solid #111;
+            background: #fff;
+            padding: 6px 8px;
+            cursor: pointer
+        }
+
+        #emailModal .em-body {
+            padding: 12px;
+            overflow: auto
+        }
+
+        #emailModal .em-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin: 8px 0;
+            font-size: 13px
+        }
+
+        #emailModal input,
+        #emailModal textarea {
+            border: 0.5px solid #111;
+            padding: 8px;
+            background: #fff;
+            font: 14px/1.4 Pretendard, system-ui
+        }
+
+        #emailModal .em-hint {
+            font-size: 12px;
+            color: #777;
+            margin-top: 6px
+        }
+
+        #emailModal .em-thumb {
+            border: 0.5px solid #111;
+            height: 140px;
+            display: grid;
+            place-items: center;
+            overflow: hidden
+        }
+
+        #emailModal .em-thumb img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain
+        }
     </style>
 
 </head>
@@ -1264,48 +1376,6 @@
     <div id="cursor" class="flower-cursor" aria-hidden="true">✿</div>
     <!-- 👇 스냅 컨테이너 시작 -->
     <div class="snap-viewport">
-
-        <!-- 섹션 1: diary 달력 -->
-        <section id="snap-diary" class="snap-section">
-            <div id="diaryEmbed">
-                <section class="calendar" aria-label="달력 영역">
-                    <div class="cal-head">
-                        <div class="cal-hero" id="de_monthNum">08</div>
-                        <div class="cal-title">
-                            <span class="mname" id="de_monthName">August</span>
-                            <span class="year" id="de_yearText">2025</span>
-                        </div>
-                        <div class="cal-nav">
-                            <button class="btn" id="de_prev" aria-label="이전 달">&larr;</button>
-                            <button class="btn" id="de_todayBtn">오늘</button>
-                            <button class="btn" id="de_next" aria-label="다음 달">&rarr;</button>
-                        </div>
-                    </div>
-                    <div class="week">
-                        <div>SUN</div>
-                        <div>MON</div>
-                        <div>TUE</div>
-                        <div>WED</div>
-                        <div>THU</div>
-                        <div>FRI</div>
-                        <div>SAT</div>
-                    </div>
-                    <div id="de_grid" class="grid" role="grid" aria-label="달력 날짜 그리드"></div>
-                    <div class="cal-foot">
-                        <div>✿ 정원 사진 있음</div>
-                        <!-- 세션 1 하단 안내 -->
-                        <div class="scroll-hint">
-                            날짜를 클릭하거나, 스크롤을 내려주세요.
-                            <span class="arrow">⬇</span>
-                        </div>
-                    </div>
-
-                </section>
-            </div>
-
-
-        </section>
-
         <!-- 섹션 2: 기존 day.html 메인 -->
         <section id="snap-day" class="snap-section">
             <!-- ↓↓↓ 아래에 '기존 <main> ... </main>' 전체를 그대로 옮겨 넣기 ↓↓↓ -->
@@ -1401,6 +1471,7 @@
                                 </div>
                                 <div style="display:flex;gap:8px">
                                     <button class="btn" id="btnCapture">캡처 저장</button>
+                                    <button class="btn" id="btnEmail" disabled>메일로 보내기</button>
                                 </div>
                             </div>
                         </div>
@@ -1436,11 +1507,37 @@
                         </div>
                     </section>
                 </div>
+                <!-- 이메일 쓰기 모달 -->
+                <div id="emailModal" style="display:none">
+                    <div class="em-wrap">
+                        <div class="em-head">
+                            <strong>메일 보내기</strong>
+                            <button type="button" class="em-close" aria-label="닫기">✕</button>
+                        </div>
+                        <div class="em-body">
+                            <label class="em-row">받는사람(이메일)
+                                <input id="emTo" type="email" placeholder="example@domain.com">
+                            </label>
+                            <label class="em-row">제목
+                                <input id="emSubject" type="text" placeholder="MOODIARY 정원 캡처 - YYYY-MM-DD">
+                            </label>
+                            <label class="em-row">본문
+                                <textarea id="emBody" rows="5"
+                                    placeholder="안녕하세요, MOODIARY에서 만든 정원 캡처를 첨부합니다."></textarea>
+                            </label>
+                            <div class="em-hint">첨부 미리보기</div>
+                            <div class="em-thumb"><img id="emPreview" alt="preview" /></div>
+                        </div>
+                        <div class="em-foot">
+                            <button class="btn" id="emDownloadPng">PNG 저장</button>
+                            <button class="btn" id="emSendNow">보내기</button>
+                        </div>
+                    </div>
+                </div>
+
             </main>
         </section>
     </div>
-    <div class="background-decor" id="backgroundDecor"></div>
-
     <script>
         /* MOODIARY — Global BGM (m4a, 이어듣기/음소거 상태 유지) */
         (function () {
@@ -1781,6 +1878,14 @@
                     const cell = document.createElement('button'); cell.className = 'cell'; cell.dataset.day = String(day);
                     if (dateStr === fmt(new Date())) cell.classList.add('today');
                     if (dateStr === selDate) cell.classList.add('sel');
+                    // ✅ 날짜 숫자 span 추가
+                    const num = document.createElement('span');
+                    num.className = 'date-number';
+                    num.textContent = day;
+                    cell.appendChild(num);
+
+                    if (dateStr === fmt(new Date())) cell.classList.add('today');
+                    if (dateStr === selDate) cell.classList.add('sel');
                     const data = DataBridge.readAny(dateStr);
                     const hasRecord = !!(data.quote || data.flower || (data.props && data.props.length));
                     const hasCapture = !!data.capture;
@@ -1797,35 +1902,6 @@
                         loadForDate(selDate);
                         refreshOptions();
                         syncHeadline(selDate);
-
-                        (function () {
-                            const calGrid = document.getElementById('calGrid');
-
-                            // 달력 칸 클릭 이벤트 수정
-                            calGrid?.addEventListener('click', (e) => {
-                                const cell = e.target.closest('.cell');
-                                if (!cell || cell.classList.contains('off')) return;
-
-                                // 기존 선택/렌더링 처리
-                                const dateStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${cell.dataset.day.padStart(2, '0')}`;
-                                window.loadForDate(dateStr);
-
-                                // ✅ 달력칸 클릭 시만 여백 추가
-                                document.querySelectorAll('.snap-section').forEach(sec => {
-                                    sec.style.scrollMarginTop = "calc(var(--header-h) + 20px)"; // 헤더 높이 + 추가 여백
-                                });
-
-                                // 약간의 부드러운 스크롤 (원하는 경우)
-                                document.getElementById('snap-day').scrollIntoView({ behavior: "smooth" });
-                            });
-
-                            // day.html 직접 진입 시 기본 여백 유지
-                            window.addEventListener("DOMContentLoaded", () => {
-                                document.querySelectorAll('.snap-section').forEach(sec => {
-                                    sec.style.scrollMarginTop = "var(--header-h)";
-                                });
-                            });
-                        })();
                     });
                     calGrid.appendChild(cell);
                 }
@@ -2386,22 +2462,51 @@
                     if (!dateStr) { alert('날짜를 먼저 선택해 주세요.'); return; }
 
                     try {
-                        const cvs = await takeShot(canvasBox);
+                        /* ✅ 1) 캡처 모드 진입: 선택박스/커서 숨김 */
+                        canvasBox.setAttribute('data-capturing', '1');
+                        const cursor = document.getElementById('cursor');
+                        const prevCursorDisp = cursor?.style.display;
+                        if (cursor) cursor.style.display = 'none';
+
+                        /* ✅ 2) 자식 IMG 모두 로딩 대기 */
+                        const imgs = Array.from(canvasBox.querySelectorAll('img'));
+                        await Promise.all(imgs.map(img => (
+                            img.complete ? Promise.resolve() :
+                                new Promise(res => { img.addEventListener('load', res, { once: true }); img.addEventListener('error', res, { once: true }); })
+                        )));
+
+                        /* ✅ 3) 살짝 대기(레이아웃 안정화) 후 캡처 */
+                        await new Promise(r => setTimeout(r, 50));
+                        const cvs = await html2canvas(canvasBox, {
+                            useCORS: true, allowTaint: false, backgroundColor: null,
+                            scale: window.devicePixelRatio > 1 ? 2 : 1, logging: false
+                        });
+
                         const dataUrl = cvs.toDataURL('image/png', 0.95);
                         await saveCapture(dataUrl, dateStr);
 
-                        // ✅ 저장 직후 달력 아이콘을 오렌지로 즉시 갱신
-                        markCalendarAsCaptured(dateStr);
+                        /* ✅ 4) 마지막 캡처 저장 & 이메일 버튼 활성화 */
+                        window.__lastCapture = { date: dateStr, dataUrl };
+                        document.getElementById('btnEmail')?.removeAttribute('disabled');
 
-                        // 저장 직후, 미리보기 갱신/다이어리 연결(선택)
+                        /* 기존 로직 유지: 달력 표시/토스트 등 */
+                        markCalendarAsCaptured(dateStr);
                         if (window.updateLastCaptureUI) updateLastCaptureUI(dateStr);
-                        alert('정원 캡처가 저장되었습니다.');
+                        alert('달력에 저장되었습니다. 캡처한 정원을 메일로 보내보세요.');
                     } catch (err) {
                         console.error(err);
                         alert('캡처 저장 중 문제가 발생했어요.');
+                    } finally {
+                        /* ✅ 5) 캡처 모드 해제 */
+                        const canvasBox = $('#canvas');
+                        canvasBox?.removeAttribute('data-capturing');
+                        const cursor = document.getElementById('cursor');
+                        if (cursor) cursor.style.display = prevCursorDisp || '';
                     }
                 }
             });
+
+
         })();
     </script>
 
@@ -3063,6 +3168,14 @@
                     btn.textContent = String(day);
                     btn.addEventListener('click', () => goToDay(dateStr));
                     cell.appendChild(btn);
+                    // ✅ 날짜 숫자 span 추가
+                    const num = document.createElement('span');
+                    num.className = 'date-number';
+                    num.textContent = day;
+                    cell.appendChild(num);
+
+                    if (dateStr === fmt(new Date())) cell.classList.add('today');
+                    if (dateStr === selDate) cell.classList.add('sel');
 
                     // 표시(꽃/사진)
                     const { hasRecord, hasCapture } = markInfoFor(dateStr);
@@ -3768,8 +3881,537 @@
             const mo = new MutationObserver(() => Selection.updatePosition());
             mo.observe(stage, { attributes: true, childList: true, subtree: true });
         })();
+
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const today = new Date();
+            const todayStr =
+                `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+            // ① 카드/정원 불러오기 (기존)
+            if (typeof loadForDate === "function") {
+                loadForDate(todayStr);
+            }
+
+            // ② 옵션 썸네일 즉시 채우기 (꽃/날씨/소품)
+            if (typeof refreshOptions === "function") {
+                refreshOptions();
+            }
+
+            // ③ (선택) 첫 진입 시 캔버스가 비어 있으면 오늘 데이터로 한 번 배치
+            if (typeof autoPlaceFromToday === "function") {
+                autoPlaceFromToday(todayStr);
+            }
+
+            // 이하 기존 선택표시/배지/헤드라인 갱신 로직 유지
+        });
+    </script>
+    <script>
+        // === 첫 진입 자동 배치 ===
+        // 캔버스 비어 있으면 오늘 데이터(꽃/날씨/소품 일부)를 한번만 올려줌
+        function autoPlaceFromToday(dateStr) {
+            const canvas = document.getElementById('canvas');
+            if (!canvas) return;
+
+            // 이미 뭔가 올라가면 아무 것도 하지 않음 (중복 방지)
+            if (canvas.querySelector('.obj')) return;
+
+            const raw = (window.DataBridge && DataBridge.readAny) ? DataBridge.readAny(dateStr) : null;
+            if (!raw) return;
+
+            // 1) 오늘 꽃
+            const flowerSlug = raw?.flower?.id || '';
+            const flowerImg = raw?.flower?.img || (flowerSlug ? `img/flowers/${flowerSlug}.svg` : '');
+            if (flowerSlug || flowerImg) {
+                const src = flowerSlug ? `img/flowers/${flowerSlug}.svg` : flowerImg;
+                // 초기 크기는 기존 사이즈 맵/헬퍼를 최대한 활용
+                if (typeof addObj === 'function') addObj(src, { width: 220 });
+            }
+
+            // 2) 오늘 날씨
+            if (raw.weather) {
+                const wsrc = `img/weather/${raw.weather}.svg`;
+                if (typeof addObj === 'function') addObj(wsrc, { width: 160 });
+            }
+
+            // 3) 오늘 소품(있다면 앞의 1~2개만 가볍게)
+            if (Array.isArray(raw.props) && raw.props.length) {
+                const pick = raw.props.slice(0, 2);
+                pick.forEach(slug => {
+                    // 저장 포맷이 {id/name} 등 다양할 수 있어 문자열로 보정
+                    const key = (typeof slug === 'string') ? slug : (slug?.id || slug?.name || '');
+                    if (!key) return;
+                    // 소품은 1~4 변형이 있으니 1번 변형으로 기본 배치
+                    const psrc = `img/sp/${key}1.svg`;
+                    if (typeof addObj === 'function') addObj(psrc, { width: 90 });
+                });
+            }
+        }
+    </script>
+    <script>
+        (function addClickSound() {
+            // 클릭 사운드 오디오 요소 생성
+            const clickSound = new Audio("audio/touch.mp3");
+
+            // 로고와 메뉴 항목 선택
+            const logo = document.querySelector(".brand");
+            const menuLinks = document.querySelectorAll("nav.main a");
+
+            // 클릭 시 사운드 재생하는 함수
+            function playClickSound(e) {
+                try {
+                    clickSound.currentTime = 0; // 매번 처음부터 재생
+                    clickSound.play();
+                } catch (err) {
+                    console.warn("Click sound failed:", err);
+                }
+            }
+
+            // 로고와 메뉴 각각에 이벤트 바인딩
+            if (logo) logo.addEventListener("click", playClickSound);
+            menuLinks.forEach(link => link.addEventListener("click", playClickSound));
+        })();
+    </script>
+    <script>
+        // base64 76자 줄바꿈
+        function wrap76(b64) {
+            const s = b64.replace(/\s+/g, '');
+            let out = '';
+            for (let i = 0; i < s.length; i += 76) out += s.slice(i, i + 76) + '\r\n';
+            return out;
+        }
+        // quoted-printable (아주 단순 버전: 줄바꿈만 처리)
+        function qp(text) {
+            return (text || '').replace(/\r?\n/g, '\r\n');
+        }
+
+        function makeEmlMac({ to, from, subject, text, dataUrl, filename = 'moodiary-capture.png' }) {
+            const boundary = '----=_Part_MOODIARY_' + Date.now();
+            const now = new Date().toUTCString();
+            const base64 = (dataUrl || '').split(',')[1] || '';
+            const b64wrapped = wrap76(base64);
+
+            // 헤더+바디
+            const eml = [
+                `From: ${from}`,
+                `To: ${to}`,
+                `Date: ${now}`,
+                `Subject: ${subject}`,
+                `MIME-Version: 1.0`,
+                `Content-Type: multipart/mixed; boundary="${boundary}"`,
+                ``,
+                `This is a multi-part message in MIME format.`,
+                `--${boundary}`,
+                `Content-Type: text/plain; charset="UTF-8"`,
+                `Content-Transfer-Encoding: quoted-printable`,
+                ``,
+                qp(text),
+                ``,
+                `--${boundary}`,
+                `Content-Type: image/png; name="${filename}"`,
+                `Content-Transfer-Encoding: base64`,
+                `Content-Disposition: attachment; filename="${filename}"`,
+                ``,
+                b64wrapped,
+                `--${boundary}--`,
+                ``
+            ].join('\r\n');
+
+            const blob = new Blob([eml], { type: 'message/rfc822' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            // 제목이 한글이면 파일명은 영문/숫자 위주로 (확장자는 .eml 유지)
+            a.download = 'moodiary-mail.eml';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
     </script>
 
+    <script>
+        /* === 메일 모달 + EML/PNG === */
+        (function () {
+            const M = document.getElementById('emailModal');
+            const btn = document.getElementById('btnEmail');
+            const closeBtn = M?.querySelector('.em-close');
+            const emTo = document.getElementById('emTo');
+            const emSubject = document.getElementById('emSubject');
+            const emBody = document.getElementById('emBody');
+            const emPrev = document.getElementById('emPreview');
+            const emMake = document.getElementById('emMakeEml');
+            const emSave = document.getElementById('emDownloadPng');
+
+            const z = n => String(n).padStart(2, '0');
+            const todayISO = (d = new Date()) => `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+            const dataURLtoBase64 = (u) => (u || '').split(',')[1] || '';
+
+            function openModal() {
+                if (!window.__lastCapture?.dataUrl) { alert('먼저 캡처 저장을 해주세요.'); return; }
+                const date = window.__lastCapture.date || (document.getElementById('dateBadge')?.textContent.trim()) || todayISO();
+                emPrev.src = window.__lastCapture.dataUrl;
+                emSubject.value = `MOODIARY 정원 캡처 - ${date}`;
+                emBody.value = `안녕하세요,\nMOODIARY에서 만든 정원 캡처를 첨부합니다.\n날짜: ${date}\n`;
+                M.style.display = 'block';
+            }
+            function closeModal() { M.style.display = 'none'; }
+
+            function makeEml() {
+                const to = (emTo.value || '').trim();
+                const subject = (emSubject.value || '').trim() || 'MOODIARY 정원 캡처';
+                const text = (emBody.value || '').toString();
+                const cap = window.__lastCapture?.dataUrl;
+                if (!cap) return alert('캡처가 없습니다.');
+                const boundary = '----=_Part_MOODIARY_' + Date.now();
+                const filename = `moodiary-${todayISO()}.png`;
+                const headers = [
+                    `To: ${to}`,
+                    `Subject: ${subject}`,
+                    `MIME-Version: 1.0`,
+                    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+                    ``,
+                    `This is a multi-part message in MIME format.`,
+                    `--${boundary}`,
+                    `Content-Type: text/plain; charset="UTF-8"`,
+                    `Content-Transfer-Encoding: 8bit`,
+                    ``,
+                    text,
+                    ``,
+                    `--${boundary}`,
+                    `Content-Type: image/png; name="${filename}"`,
+                    `Content-Transfer-Encoding: base64`,
+                    `Content-Disposition: attachment; filename="${filename}"`,
+                    ``,
+                    dataURLtoBase64(cap),
+                    ``,
+                    `--${boundary}--`,
+                    ``
+                ].join('\r\n');
+
+                const blob = new Blob([headers], { type: 'message/rfc822' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `${subject}.eml`;
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 800);
+            }
+            function downloadPng() {
+                const cap = window.__lastCapture?.dataUrl;
+                if (!cap) return alert('캡처가 없습니다.');
+                const a = document.createElement('a');
+                a.href = cap; a.download = `moodiary-${todayISO()}.png`;
+                document.body.appendChild(a); a.click(); a.remove();
+            }
+
+            btn?.addEventListener('click', openModal);
+            closeBtn?.addEventListener('click', closeModal);
+            M?.addEventListener('click', (e) => { if (e.target === M) closeModal(); });
+            emMake?.addEventListener('click', makeEml);
+            emSave?.addEventListener('click', downloadPng);
+
+            // "이메일 초안(.eml) 만들기" 버튼 클릭 시 실행
+            emMake.addEventListener("click", () => {
+                const to = document.getElementById("emTo").value.trim();
+                const from = "no-reply@moodiary.local"; // 표시용 (Mail 앱이 실제 발송 계정 사용)
+                const subject = document.getElementById("emSubject").value.trim() || "MOODIARY 정원 캡처";
+                const text = document.getElementById("emBody").value || "";
+                const cap = window.__lastCapture?.dataUrl;
+                if (!cap) return alert("먼저 캡처를 저장해주세요.");
+
+                // 여기서 makeEmlMac 함수 호출
+                makeEmlMac({
+                    to,
+                    from,
+                    subject,
+                    text,
+                    dataUrl: cap,
+                    filename: "moodiary-capture.png"
+                });
+            });
+
+        })();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script>
+        // ▼ 실제 Public Key로 교체하세요
+        emailjs.init({ publicKey: "YOUR_PUBLIC_KEY_FROM_EMAILJS" });
+    </script>
+    <script>
+        (function () {
+            const emSend = document.getElementById('emSendNow');
+            const emTo = document.getElementById('emTo');
+            const emSubject = document.getElementById('emSubject');
+            const emBody = document.getElementById('emBody');
+
+            function dataURLtoBase64(u) { return (u || '').split(',')[1] || ''; }
+
+            emSend?.addEventListener('click', async () => {
+                const to = emTo.value.trim();
+                if (!to) { alert('받는사람 이메일을 입력해 주세요.'); return; }
+                const subject = emSubject.value.trim() || 'MOODIARY 정원 캡처';
+                const body = emBody.value || '';
+                const cap = (window.__lastCapture && window.__lastCapture.dataUrl) || '';
+                const base64 = dataURLtoBase64(cap);
+
+                try {
+                    await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+                        to_email: to,
+                        subject,
+                        message: body,
+                        // EmailJS 템플릿에서 {{attachment}} 같은 변수로 사용
+                        attachment: `data:image/png;base64,${base64}`
+                    });
+                    alert('메일을 보냈어요!');
+                    document.getElementById('emailModal').style.display = 'none';
+                } catch (e) {
+                    console.error(e);
+                    alert('메일 전송에 실패했어요. 설정값을 확인해 주세요.');
+                }
+            });
+        })();
+        btnCapture.addEventListener('click', async () => {
+            // ✿ 커서 잠시 보이게
+            document.body.style.cursor = 'default';
+            document.getElementById('cursor').style.display = 'none';
+
+            // 캡처 실행
+            const cvs = await takeShot(canvasBox);
+            const dataUrl = cvs.toDataURL('image/png', 0.95);
+            await saveCapture(dataUrl, dateStr);
+
+            // ✿ 커서 복구
+            document.body.style.cursor = 'none';
+            document.getElementById('cursor').style.display = 'grid';
+        });
+
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnCapture = document.getElementById('btnCapture');
+            const cursor = document.getElementById('cursor');
+            const canvasBox = document.getElementById('canvas');
+
+            if (!btnCapture || !cursor || !canvasBox) return;
+
+            btnCapture.addEventListener('click', async () => {
+                // 🌸 커서가 사라지지 않도록 항상 보이게 설정
+                cursor.style.display = 'grid';
+                cursor.style.opacity = '1';
+                cursor.style.visibility = 'visible';
+
+                // 커서가 html2canvas에 잡히지 않게 하고 싶으면 아래 한 줄 유지 / 아니면 주석 처리
+                // cursor.style.display = 'none';  // ← 캡처에 커서 안나오게 할 때만 사용
+
+                // ✅ 캡처 시작
+                const cvs = await html2canvas(canvasBox, {
+                    useCORS: true,
+                    backgroundColor: null,
+                    logging: false
+                });
+                const dataUrl = cvs.toDataURL('image/png', 0.95);
+
+                // ✅ 저장 처리 함수 (이미 있다면 그대로 호출)
+                if (typeof saveCapture === 'function') {
+                    const dateStr = document.getElementById('dateBadge')?.textContent || new Date().toISOString().slice(0, 10);
+                    await saveCapture(dataUrl, dateStr);
+                }
+
+                // 🌸 캡처 끝난 뒤에도 커서 유지
+                cursor.style.display = 'grid';
+                cursor.style.opacity = '1';
+                cursor.style.visibility = 'visible';
+            });
+        });
+
+        // ✅ 캡처 저장
+        document.getElementById('btnCapture').addEventListener('click', async () => {
+            const canvasBox = document.getElementById('canvas');
+            canvasBox.setAttribute('data-capturing', '1');
+
+            // 🌸 html2canvas 옵션 수정
+            const cvs = await html2canvas(canvasBox, {
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: null, // 투명 배경 유지
+                scale: 2, // 해상도 2배로 선명하게
+                logging: false
+            });
+
+            canvasBox.removeAttribute('data-capturing');
+
+            // PNG로 저장
+            const dataUrl = cvs.toDataURL('image/png', 0.95);
+            const a = document.createElement('a');
+            // 🌸 캡처 저장 (자동 다운로드 제거)
+            document.getElementById('btnCapture').addEventListener('click', async () => {
+                const canvasBox = document.getElementById('canvas');
+                canvasBox.setAttribute('data-capturing', '1');
+
+                try {
+                    // 캡처 생성
+                    const cvs = await html2canvas(canvasBox, {
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: null,
+                        scale: 2,
+                        logging: false
+                    });
+
+                    const dataUrl = cvs.toDataURL('image/png', 0.95);
+                    const dateStr = (document.getElementById('dateBadge')?.textContent || '').trim()
+                        || new Date().toISOString().slice(0, 10);
+
+                    // 🌷 캡처 이미지를 localStorage에만 저장
+                    localStorage.setItem(`garden_capture_${dateStr}`, dataUrl);
+
+                    // 🌼 모달 미리보기에 표시
+                    const modal = document.getElementById('emailModal');
+                    const preview = document.getElementById('emPreview');
+                    if (preview) preview.src = dataUrl;
+                    if (modal) modal.style.display = 'block';
+
+                } catch (err) {
+                    console.error('캡처 실패:', err);
+                    alert('캡처에 실패했어요. 다시 시도해 주세요.');
+                } finally {
+                    canvasBox.removeAttribute('data-capturing');
+                }
+            });
+
+        });
+
+        img.crossOrigin = "anonymous";
+
+    </script>
+
+    <script>
+        /* ===== 캡처 → 미리보기 모달로, 자동 다운로드 금지 ===== */
+
+        // 유틸: 모달 열고/닫기
+        function openEmailModal() {
+            const m = document.getElementById('emailModal');
+            if (!m) return;
+            m.style.display = 'block';
+        }
+        function closeEmailModal() {
+            const m = document.getElementById('emailModal');
+            if (!m) return;
+            m.style.display = 'none';
+        }
+
+        // 유틸: #canvas 내부 외부이미지 CORS 안전화
+        function ensureCanvasImagesCORS() {
+            const wrap = document.getElementById('canvas');
+            if (!wrap) return;
+            wrap.querySelectorAll('img').forEach(img => {
+                try {
+                    // 외부/동적 이미지가 캔버스에 섞여 있을 수 있으니 안전하게
+                    img.crossOrigin = img.crossOrigin || 'anonymous';
+                    // 캐시된 이미지를 다시 불러와 CORS 헤더가 반영되도록
+                    if (img.src) {
+                        const src = img.src;
+                        img.src = '';
+                        img.src = src;
+                    }
+                } catch { }
+            });
+        }
+
+        // 유틸: 날짜 문자열 (상단 배지 활용)
+        function currentDateStr() {
+            const t = (document.getElementById('dateBadge')?.textContent || '').trim();
+            if (t) return t;
+            const d = new Date();
+            const z = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+        }
+
+        // 저장: localStorage에 오늘 캡처를 기록(앱이 이미 읽도록 구현돼 있음)
+        function saveCaptureToLocal(dataUrl, dateStr) {
+            try {
+                // 1) 단일 키
+                localStorage.setItem(`garden_capture_${dateStr}`, dataUrl);
+                // 2) 날짜별 배열 맵
+                const map = JSON.parse(localStorage.getItem('photos_by_date') || '{}');
+                map[dateStr] = Array.isArray(map[dateStr]) ? map[dateStr] : [];
+                map[dateStr].push(dataUrl);
+                localStorage.setItem('photos_by_date', JSON.stringify(map));
+            } catch (e) {
+                console.warn('saveCaptureToLocal 실패', e);
+            }
+        }
+
+        // 버튼/엘리먼트 참조
+        const btnCapture = document.getElementById('btnCapture');
+        const btnEmail = document.getElementById('btnEmail');
+        const emPreview = document.getElementById('emPreview');
+        const emSubject = document.getElementById('emSubject');
+        const emClose = document.querySelector('#emailModal .em-close');
+        const emDownload = document.getElementById('emDownloadPng');
+
+        // 모달 닫기
+        emClose?.addEventListener('click', closeEmailModal);
+
+        // “PNG 저장” 버튼에서만 다운로드 수행
+        emDownload?.addEventListener('click', () => {
+            if (!emPreview?.src?.startsWith('data:image')) return;
+            const a = document.createElement('a');
+            a.href = emPreview.src;
+            a.download = `moodiary_${currentDateStr()}.png`;
+            a.click();
+        });
+
+        // 캡처 저장(자동 다운로드 금지) → 모달 미리보기로 띄우기
+        btnCapture?.addEventListener('click', async () => {
+            const canvasBox = document.getElementById('canvas');
+            if (!canvasBox || !window.html2canvas) return;
+
+            // CORS 대비
+            ensureCanvasImagesCORS();
+
+            // 캡처 시 보조 UI 숨김
+            canvasBox.setAttribute('data-capturing', '1');
+
+            try {
+                const shot = await html2canvas(canvasBox, {
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: null,
+                    scale: 2,
+                    logging: false
+                });
+
+                const dataUrl = shot.toDataURL('image/png', 0.95);
+                const dateStr = currentDateStr();
+
+                // 앱이 읽는 저장소 키들로 저장 (달력/섬네일 등에서 재활용됨)
+                saveCaptureToLocal(dataUrl, dateStr);
+
+                // 미리보기 반영 + 제목 자동 채우기
+                if (emPreview) emPreview.src = dataUrl;
+                if (emSubject && !emSubject.value) {
+                    emSubject.value = `MOODIARY 정원 캡처 - ${dateStr}`;
+                }
+
+                // 메일 버튼 활성화
+                if (btnEmail) btnEmail.disabled = false;
+
+                // ✨ 자동 다운로드는 하지 않고, 모달 열어줌
+                openEmailModal();
+
+            } catch (e) {
+                console.warn('캡처 실패', e);
+                alert('캡처에 실패했어요. 다시 시도해 주세요.');
+            } finally {
+                canvasBox.removeAttribute('data-capturing');
+            }
+        });
+
+        // “메일로 보내기” 버튼을 눌러도 모달 열리도록(작성 편의)
+        btnEmail?.addEventListener('click', openEmailModal);
+    </script>
 
 </body>
 

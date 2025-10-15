@@ -693,6 +693,30 @@
             })();
         })();
     </script>
+    <script>
+        (function addClickSound() {
+            // 클릭 사운드 오디오 요소 생성
+            const clickSound = new Audio("audio/touch.mp3");
+
+            // 로고와 메뉴 항목 선택
+            const logo = document.querySelector(".brand");
+            const menuLinks = document.querySelectorAll("nav.main a");
+
+            // 클릭 시 사운드 재생하는 함수
+            function playClickSound(e) {
+                try {
+                    clickSound.currentTime = 0; // 매번 처음부터 재생
+                    clickSound.play();
+                } catch (err) {
+                    console.warn("Click sound failed:", err);
+                }
+            }
+
+            // 로고와 메뉴 각각에 이벤트 바인딩
+            if (logo) logo.addEventListener("click", playClickSound);
+            menuLinks.forEach(link => link.addEventListener("click", playClickSound));
+        })();
+    </script>
 
 </body>
 
