@@ -686,58 +686,84 @@
     <div class="background-decor" id="backgroundDecor"></div>
 
     <script>
-        /* MOODIARY — Global BGM (m4a, 이어듣기/음소거 상태 유지) */
+
         (function () {
-            const audio = document.getElementById('bgm');
-            const btn = document.getElementById('soundToggle');
-
-            if (!audio || !btn) return;
-
-            // ✅ 모든 페이지에서 같은 키를 씁니다 (이미 쓰던 키와 호환)
             const STATE_KEY = 'moodiary_bgm_state'; // 'on' | 'off'
-            const POS_KEY = 'moodiary_bgm_pos';   // 재생 위치(초)
-            const VOL_KEY = 'moodiary_bgm_vol';   // 0.0 ~ 1.0
+            const POS_KEY = 'moodiary_bgm_pos';   // number(sec)
+            const VOL_KEY = 'moodiary_bgm_vol';   // '0.0' ~ '1.0'
+            const DEFAULT_SRC = 'audio/temp.m4a';   // 페이지마다 다르면 여기 값으로 강제 통일됨
 
-            // ✅ 파일 강제 통일
-            const DESIRED_SRC = 'audio/temp.m4a';
-            if (audio.getAttribute('src') !== DESIRED_SRC) audio.setAttribute('src', DESIRED_SRC);
+            const btn = document.getElementById('soundToggle');
+            let audio = document.getElementById('bgm');
 
-            // 버튼 라벨 동기화
+            if (!btn) return; // 버튼 없으면 패스(이 페이지에선 컨트롤하지 않음)
+
+            // 오디오 엘리먼트가 없다면 동적으로 생성 (경로 통일)
+            if (!audio) {
+                audio = document.createElement('audio');
+                audio.id = 'bgm';
+                audio.preload = 'auto';
+                audio.loop = true;
+                audio.playsInline = true;
+                audio.src = DEFAULT_SRC;
+                document.body.appendChild(audio);
+            }
+
+            // 소스 경로 강제 통일(서로 다른 페이지에서 경로가 달라도 동일화)
+            if (!audio.getAttribute('src')) audio.setAttribute('src', DEFAULT_SRC);
+            if (audio.getAttribute('src') !== DEFAULT_SRC) audio.setAttribute('src', DEFAULT_SRC);
+
+            // 버튼 라벨/aria 갱신
             function setBtn(on) {
                 btn.textContent = on ? '🔊 Sound (On)' : '🔈 Sound (Off)';
                 btn.setAttribute('aria-pressed', on ? 'true' : 'false');
             }
 
             // 부드러운 볼륨 페이드
-            const fps = 60;
-            function fadeTo(target = 0.35, ms = 800) {
+            const FPS = 60;
+            function fadeTo(target = 0.35, ms = 600) {
                 target = Math.max(0, Math.min(1, target));
-                const step = (target - audio.volume) / (ms / (1000 / fps));
+                const step = (target - audio.volume) / (ms / (1000 / FPS));
                 const t = setInterval(() => {
                     audio.volume = Math.max(0, Math.min(1, audio.volume + step));
                     if ((step > 0 && audio.volume >= target) || (step < 0 && audio.volume <= target)) {
                         clearInterval(t);
                         localStorage.setItem(VOL_KEY, String(audio.volume));
                     }
-                }, 1000 / fps);
+                }, 1000 / FPS);
             }
 
             async function tryPlay() {
                 try {
                     audio.muted = false;
-                    audio.volume = parseFloat(localStorage.getItem(VOL_KEY) || '0.30');
+                    audio.autoplay = false; // 깜빡 재생 방지
+                    audio.removeAttribute('autoplay');
+
+                    // 저장된 볼륨/위치 복원
+                    const savedVol = parseFloat(localStorage.getItem(VOL_KEY) || '0.30');
+                    audio.volume = isFinite(savedVol) ? savedVol : 0.30;
+
+                    const pos = parseFloat(localStorage.getItem(POS_KEY) || '0');
+                    const applyPos = () => {
+                        if (isFinite(pos) && pos > 0 && (!isFinite(audio.duration) || pos < audio.duration - 0.4)) {
+                            audio.currentTime = pos;
+                        }
+                    };
+                    if (audio.readyState >= 1) applyPos();
+                    else audio.addEventListener('loadedmetadata', applyPos, { once: true });
+
                     await audio.play();
                     setBtn(true);
-                    fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700);
-                } catch (e) {
-                    // 첫 사용자 제스처 전 자동재생이 막힌 경우: 한 번만 탭 이벤트로 언락
+                    fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 500);
+                } catch {
+                    // 사용자 제스처 필요: 한 번만 언락
                     setBtn(false);
                     const unlock = async () => {
                         try {
                             await audio.play();
                             setBtn(true);
-                            fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700);
-                        } catch { }
+                            fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 500);
+                        } catch { /* no-op */ }
                         finally {
                             window.removeEventListener('pointerdown', unlock, { once: true });
                         }
@@ -746,50 +772,49 @@
                 }
             }
 
-            // ▶ 새 페이지에서 재생 위치 복원(이어듣기 핵심)
-            audio.addEventListener('loadedmetadata', () => {
-                const pos = parseFloat(localStorage.getItem(POS_KEY) || '0');
-                if (isFinite(pos) && pos > 0 && (!isFinite(audio.duration) || pos < audio.duration - 0.4)) {
-                    audio.currentTime = pos;
-                }
-            });
-
-            // ▶ 0.7초마다, 그리고 페이지 떠날 때 현재 위치 저장
+            // ▶ 위치 저장(페이지 이동/탭 전환 포함)
             const savePos = () => {
                 if (isFinite(audio.currentTime)) localStorage.setItem(POS_KEY, String(audio.currentTime));
             };
             const posTimer = setInterval(savePos, 700);
             window.addEventListener('pagehide', savePos);
+            window.addEventListener('beforeunload', savePos);
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) savePos();
+            });
 
-            // ▶ 버튼 토글: 상태를 localStorage에 저장 → 다음 페이지에도 그대로 반영
+            // ▶ 버튼 토글
             btn.addEventListener('click', async () => {
-                if (audio.paused) {
-                    localStorage.setItem(STATE_KEY, 'on');
-                    await tryPlay();
-                } else {
+                const isOn = localStorage.getItem(STATE_KEY) === 'on';
+                if (isOn) {
                     audio.pause();
                     setBtn(false);
                     localStorage.setItem(STATE_KEY, 'off');
+                    savePos();
+                } else {
+                    localStorage.setItem(STATE_KEY, 'on');
+                    await tryPlay();
                 }
             });
 
-            // ▶ 첫 진입 시 상태/위치 반영
-            if ((localStorage.getItem(STATE_KEY) ?? 'on') === 'on') {
+            // ▶ 첫 진입: 저장 상태 반영
+            const shouldOn = (localStorage.getItem(STATE_KEY) ?? 'on') === 'on';
+            if (shouldOn) {
                 tryPlay();
             } else {
+                audio.pause();
+                audio.autoplay = false;
+                audio.removeAttribute('autoplay');
                 setBtn(false);
             }
 
-            // ▶ 탭을 다시 볼 때, 켜두었는데 멈춰 있으면 즉시 재개
+            // ▶ 탭 복귀 시: 켜둔 상태인데 멈춰 있으면 재개
             document.addEventListener('visibilitychange', () => {
                 if (!document.hidden && localStorage.getItem(STATE_KEY) === 'on' && audio.paused) {
                     tryPlay();
                 }
             });
         })();
-    </script>
-
-    <script>
         function stampCardTime(date) { const store = readTodayStore(); const prev = store[date] || { date }; prev.cardCreatedAt = Date.now(); store[date] = prev; writeTodayStore(store); }
 
 

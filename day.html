@@ -367,10 +367,11 @@
             text-align: center;
             font-size: 12px;
             color: #888;
-            margin-top: 8px;
-            /* 👈 위 여백 추가 */
+            margin-top: 4px;
+            /* 위쪽 간격 살짝만 */
+            margin-bottom: 0;
+            /* 아래쪽 여백 완전히 제거 */
         }
-
 
         .mark-flower {
             position: absolute;
@@ -1346,6 +1347,37 @@
             max-height: 100%;
             object-fit: contain
         }
+
+        /* 🔤 미니달력 월/연도 스타일 수정 */
+        #mname {
+            font-size: 1.8rem;
+            /* 숫자달 크기 */
+            font-weight: 600;
+            /* 얇게 */
+            letter-spacing: 1px;
+            /* 글자 간격 살짝 */
+            color: #333;
+            /* 어두운 회색 */
+        }
+
+        #ytext {
+            font-size: 1rem;
+            /* 영어 달 풀네임 크기 */
+            font-weight: 100;
+            /* 얇게 */
+            letter-spacing: 1px;
+            color: #666;
+            /* 살짝 밝은 회색톤 */
+        }
+
+        .cal-area {
+            position: sticky;
+            top: var(--header-h);
+            /* 헤더 바로 아래에 고정 */
+            align-self: start;
+            z-index: 20;
+            background: #fff;
+        }
     </style>
 
 </head>
@@ -1399,9 +1431,8 @@
                                     <div class="cal-head">
                                         <div class="cal-title"><span id="mname">—</span> <span id="ytext"
                                                 style="color:#888;font-weight:800">—</span></div>
-                                        <button class="btn" id="goDiaryBtn">다이어리로 이동하기</button>
-
                                     </div>
+
                                     <div class="week">
                                         <div>S</div>
                                         <div>M</div>
@@ -1471,7 +1502,7 @@
                                 </div>
                                 <div style="display:flex;gap:8px">
                                     <button class="btn" id="btnCapture">캡처 저장</button>
-                                    <button class="btn" id="btnEmail" disabled>메일로 보내기</button>
+                                    <button class="btn" id="btnQR">QR로 보내기</button>
                                 </div>
                             </div>
                         </div>
@@ -1507,90 +1538,108 @@
                         </div>
                     </section>
                 </div>
-                <!-- 이메일 쓰기 모달 -->
-                <div id="emailModal" style="display:none">
-                    <div class="em-wrap">
-                        <div class="em-head">
-                            <strong>메일 보내기</strong>
-                            <button type="button" class="em-close" aria-label="닫기">✕</button>
+                <!-- QR 모달 -->
+                <div id="qrModal"
+                    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:9999;">
+                    <div style="width:min(520px,92vw); background:#fff; border:0.5px solid #111; 
+                position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+                padding:16px; display:flex; flex-direction:column; gap:10px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <strong>QR로 보내기</strong>
+                            <button id="qrClose" class="btn">닫기</button>
                         </div>
-                        <div class="em-body">
-                            <label class="em-row">받는사람(이메일)
-                                <input id="emTo" type="email" placeholder="example@domain.com">
-                            </label>
-                            <label class="em-row">제목
-                                <input id="emSubject" type="text" placeholder="MOODIARY 정원 캡처 - YYYY-MM-DD">
-                            </label>
-                            <label class="em-row">본문
-                                <textarea id="emBody" rows="5"
-                                    placeholder="안녕하세요, MOODIARY에서 만든 정원 캡처를 첨부합니다."></textarea>
-                            </label>
-                            <div class="em-hint">첨부 미리보기</div>
-                            <div class="em-thumb"><img id="emPreview" alt="preview" /></div>
-                        </div>
-                        <div class="em-foot">
-                            <button class="btn" id="emDownloadPng">PNG 저장</button>
-                            <button class="btn" id="emSendNow">보내기</button>
-                        </div>
+                        <div id="qrCanvasWrap"
+                            style="display:grid; place-items:center; min-height:220px; border:0.5px solid #111;"></div>
+                        <div style="font-size:12px; color:#777;">링크:</div>
+                        <input id="qrLink" type="text" readonly
+                            style="width:100%; border:0.5px solid #111; padding:8px;">
+                        <div style="font-size:12px; color:#2878b4;">휴대폰 카메라로 QR을 스캔 → 링크 열기 → 이미지 길게 눌러 “사진 저장”.</div>
                     </div>
                 </div>
 
             </main>
         </section>
     </div>
+
+    <!-- ✿ custom cursor -->
     <script>
-        /* MOODIARY — Global BGM (m4a, 이어듣기/음소거 상태 유지) */
         (function () {
-            const audio = document.getElementById('bgm');
-            const btn = document.getElementById('soundToggle');
-
-            if (!audio || !btn) return;
-
-            // ✅ 모든 페이지에서 같은 키를 씁니다 (이미 쓰던 키와 호환)
             const STATE_KEY = 'moodiary_bgm_state'; // 'on' | 'off'
-            const POS_KEY = 'moodiary_bgm_pos';   // 재생 위치(초)
-            const VOL_KEY = 'moodiary_bgm_vol';   // 0.0 ~ 1.0
+            const POS_KEY = 'moodiary_bgm_pos';   // number(sec)
+            const VOL_KEY = 'moodiary_bgm_vol';   // '0.0' ~ '1.0'
+            const DEFAULT_SRC = 'audio/temp.m4a';   // 페이지마다 다르면 여기 값으로 강제 통일됨
 
-            // ✅ 파일 강제 통일
-            const DESIRED_SRC = 'audio/temp.m4a';
-            if (audio.getAttribute('src') !== DESIRED_SRC) audio.setAttribute('src', DESIRED_SRC);
+            const btn = document.getElementById('soundToggle');
+            let audio = document.getElementById('bgm');
 
-            // 버튼 라벨 동기화
+            if (!btn) return; // 버튼 없으면 패스(이 페이지에선 컨트롤하지 않음)
+
+            // 오디오 엘리먼트가 없다면 동적으로 생성 (경로 통일)
+            if (!audio) {
+                audio = document.createElement('audio');
+                audio.id = 'bgm';
+                audio.preload = 'auto';
+                audio.loop = true;
+                audio.playsInline = true;
+                audio.src = DEFAULT_SRC;
+                document.body.appendChild(audio);
+            }
+
+            // 소스 경로 강제 통일(서로 다른 페이지에서 경로가 달라도 동일화)
+            if (!audio.getAttribute('src')) audio.setAttribute('src', DEFAULT_SRC);
+            if (audio.getAttribute('src') !== DEFAULT_SRC) audio.setAttribute('src', DEFAULT_SRC);
+
+            // 버튼 라벨/aria 갱신
             function setBtn(on) {
                 btn.textContent = on ? '🔊 Sound (On)' : '🔈 Sound (Off)';
                 btn.setAttribute('aria-pressed', on ? 'true' : 'false');
             }
 
             // 부드러운 볼륨 페이드
-            const fps = 60;
-            function fadeTo(target = 0.35, ms = 800) {
+            const FPS = 60;
+            function fadeTo(target = 0.35, ms = 600) {
                 target = Math.max(0, Math.min(1, target));
-                const step = (target - audio.volume) / (ms / (1000 / fps));
+                const step = (target - audio.volume) / (ms / (1000 / FPS));
                 const t = setInterval(() => {
                     audio.volume = Math.max(0, Math.min(1, audio.volume + step));
                     if ((step > 0 && audio.volume >= target) || (step < 0 && audio.volume <= target)) {
                         clearInterval(t);
                         localStorage.setItem(VOL_KEY, String(audio.volume));
                     }
-                }, 1000 / fps);
+                }, 1000 / FPS);
             }
 
             async function tryPlay() {
                 try {
                     audio.muted = false;
-                    audio.volume = parseFloat(localStorage.getItem(VOL_KEY) || '0.30');
+                    audio.autoplay = false; // 깜빡 재생 방지
+                    audio.removeAttribute('autoplay');
+
+                    // 저장된 볼륨/위치 복원
+                    const savedVol = parseFloat(localStorage.getItem(VOL_KEY) || '0.30');
+                    audio.volume = isFinite(savedVol) ? savedVol : 0.30;
+
+                    const pos = parseFloat(localStorage.getItem(POS_KEY) || '0');
+                    const applyPos = () => {
+                        if (isFinite(pos) && pos > 0 && (!isFinite(audio.duration) || pos < audio.duration - 0.4)) {
+                            audio.currentTime = pos;
+                        }
+                    };
+                    if (audio.readyState >= 1) applyPos();
+                    else audio.addEventListener('loadedmetadata', applyPos, { once: true });
+
                     await audio.play();
                     setBtn(true);
-                    fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700);
-                } catch (e) {
-                    // 첫 사용자 제스처 전 자동재생이 막힌 경우: 한 번만 탭 이벤트로 언락
+                    fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 500);
+                } catch {
+                    // 사용자 제스처 필요: 한 번만 언락
                     setBtn(false);
                     const unlock = async () => {
                         try {
                             await audio.play();
                             setBtn(true);
-                            fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 700);
-                        } catch { }
+                            fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 500);
+                        } catch { /* no-op */ }
                         finally {
                             window.removeEventListener('pointerdown', unlock, { once: true });
                         }
@@ -1599,51 +1648,50 @@
                 }
             }
 
-            // ▶ 새 페이지에서 재생 위치 복원(이어듣기 핵심)
-            audio.addEventListener('loadedmetadata', () => {
-                const pos = parseFloat(localStorage.getItem(POS_KEY) || '0');
-                if (isFinite(pos) && pos > 0 && (!isFinite(audio.duration) || pos < audio.duration - 0.4)) {
-                    audio.currentTime = pos;
-                }
-            });
-
-            // ▶ 0.7초마다, 그리고 페이지 떠날 때 현재 위치 저장
+            // ▶ 위치 저장(페이지 이동/탭 전환 포함)
             const savePos = () => {
                 if (isFinite(audio.currentTime)) localStorage.setItem(POS_KEY, String(audio.currentTime));
             };
             const posTimer = setInterval(savePos, 700);
-            window.addEventListener('pagehide', savePos);
 
-            // ▶ 버튼 토글: 상태를 localStorage에 저장 → 다음 페이지에도 그대로 반영
+            window.addEventListener('pagehide', savePos);
+            window.addEventListener('beforeunload', savePos);
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) savePos();
+            });
+
+            // ▶ 버튼 토글
             btn.addEventListener('click', async () => {
-                if (audio.paused) {
-                    localStorage.setItem(STATE_KEY, 'on');
-                    await tryPlay();
-                } else {
+                const isOn = localStorage.getItem(STATE_KEY) === 'on';
+                if (isOn) {
                     audio.pause();
                     setBtn(false);
                     localStorage.setItem(STATE_KEY, 'off');
+                    savePos();
+                } else {
+                    localStorage.setItem(STATE_KEY, 'on');
+                    await tryPlay();
                 }
             });
 
-            // ▶ 첫 진입 시 상태/위치 반영
-            if ((localStorage.getItem(STATE_KEY) ?? 'on') === 'on') {
+            // ▶ 첫 진입: 저장 상태 반영
+            const shouldOn = (localStorage.getItem(STATE_KEY) ?? 'on') === 'on';
+            if (shouldOn) {
                 tryPlay();
             } else {
+                audio.pause();
+                audio.autoplay = false;
+                audio.removeAttribute('autoplay');
                 setBtn(false);
             }
 
-            // ▶ 탭을 다시 볼 때, 켜두었는데 멈춰 있으면 즉시 재개
+            // ▶ 탭 복귀 시: 켜둔 상태인데 멈춰 있으면 재개
             document.addEventListener('visibilitychange', () => {
                 if (!document.hidden && localStorage.getItem(STATE_KEY) === 'on' && audio.paused) {
                     tryPlay();
                 }
             });
         })();
-    </script>
-
-    <!-- ✿ custom cursor -->
-    <script>
         (function () {
             const c = document.getElementById('cursor'); if (!c) return;
             const move = (x, y) => { c.style.left = x + 'px'; c.style.top = y + 'px'; };
@@ -1865,12 +1913,17 @@
         (function () {
             const calGrid = $('#calGrid'), mname = $('#mname'), ytext = $('#ytext'), info = $('#leftInfo'), dateBadge = $('#dateBadge');
             const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            const FULL_MONTHS = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
             let selDate = (new URL(location.href)).searchParams.get('date') || DataBridge.bestDate();
             let cur = new Date(selDate);
 
             function buildCalendar(d) {
                 calGrid.innerHTML = ''; const y = d.getFullYear(), m = d.getMonth();
-                mname.textContent = MONTHS[m]; ytext.textContent = y;
+                mname.textContent = String(m + 1);      // 예: 10
+                ytext.textContent = FULL_MONTHS[m];     // 예: October
                 const first = new Date(y, m, 1), start = first.getDay(), last = new Date(y, m + 1, 0).getDate();
                 for (let i = 0; i < start; i++) { const div = document.createElement('div'); div.className = 'cell off'; calGrid.appendChild(div); }
                 for (let day = 1; day <= last; day++) {
@@ -1919,7 +1972,6 @@
             $('#prevM').addEventListener('click', () => { cur.setMonth(cur.getMonth() - 1); buildCalendar(cur); });
             $('#nextM').addEventListener('click', () => { cur.setMonth(cur.getMonth() + 1); buildCalendar(cur); });
             $('#todayM').addEventListener('click', () => { const t = new Date(); cur = new Date(t); selDate = DataBridge.bestDate(); buildCalendar(cur); loadForDate(selDate); refreshOptions(); syncHeadline(selDate); });
-            $('#goDiaryBtn').addEventListener('click', () => location.href = 'day.html');
 
             buildCalendar(cur);
             loadForDate(selDate);
@@ -2492,7 +2544,7 @@
                         /* 기존 로직 유지: 달력 표시/토스트 등 */
                         markCalendarAsCaptured(dateStr);
                         if (window.updateLastCaptureUI) updateLastCaptureUI(dateStr);
-                        alert('달력에 저장되었습니다. 캡처한 정원을 메일로 보내보세요.');
+                        alert('달력에 기록되었습니다. 캡처한 정원을 큐알로 저장하세요.');
                     } catch (err) {
                         console.error(err);
                         alert('캡처 저장 중 문제가 발생했어요.');
@@ -4350,7 +4402,7 @@
         const emSubject = document.getElementById('emSubject');
         const emClose = document.querySelector('#emailModal .em-close');
         const emDownload = document.getElementById('emDownloadPng');
-        const canvasBox  = document.getElementById('canvas'); // ← 여기서만 선언
+        const canvasBox = document.getElementById('canvas'); // ← 여기서만 선언
 
         // 모달 닫기
         emClose?.addEventListener('click', closeEmailModal);
@@ -4417,6 +4469,566 @@
 
             console.log('캡처 완료');
         });
+    </script>
+    <script>
+        /** 이메일 전송 처리 (프론트) */
+        // emSendNow 버튼 클릭 시 동작
+        document.getElementById('emSendNow')?.addEventListener('click', async () => {
+            try {
+                const to = document.getElementById('emTo').value.trim();
+                const subject = document.getElementById('emSubject').value.trim() || `MOODIARY 캡처 ${new Date().toLocaleDateString()}`;
+                const body = document.getElementById('emBody').value || '';
+
+                if (!to) return alert('받는사람 이메일을 입력하세요.');
+
+                // 1) 우선 emPreview에 이미지가 있으면 그것을 사용, 없으면 캔버스를 html2canvas로 캡처
+                let dataUrl = document.getElementById('emPreview')?.src;
+                if (!dataUrl || !dataUrl.startsWith('data:image')) {
+                    // 캡처할 캔버스 요소 ID: 기존 코드에 맞춰 '#canvas' 사용
+                    const target = document.getElementById('canvas') || document.getElementById('cardArt') || document.body;
+                    if (!window.html2canvas) {
+                        alert('html2canvas가 로드되지 않았습니다. 잠시 후 다시 시도해 주세요.');
+                        return;
+                    }
+                    const canvas = await html2canvas(target, { useCORS: true, allowTaint: true, scale: 1 });
+                    dataUrl = canvas.toDataURL('image/png', 0.95);
+                    // 미리보기에 띄우기(선택)
+                    const p = document.getElementById('emPreview');
+                    if (p) p.src = dataUrl;
+                }
+
+                // 2) 서버로 전송 (JSON)
+                const res = await fetch('/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to, subject, body,
+                        attachment: dataUrl  // data:image/png;base64,.... 형태
+                    })
+                });
+
+                const j = await res.json();
+                if (res.ok) {
+                    alert('메일이 전송되었습니다 ✅');
+                    // 모달 닫기 등 UI 처리 (필요 시)
+                    document.querySelector('#emailModal .em-close')?.click();
+                } else {
+                    console.error('메일 전송 실패:', j);
+                    alert('메일 전송에 실패했습니다: ' + (j?.error || '서버 오류'));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('오류가 발생했습니다. 콘솔을 확인하세요.');
+            }
+        });
+    </script>
+    <!-- QR 생성 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <!-- 문자열 압축(LZString) -->
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+    <!-- QR 모달 -->
+    <div id="qrModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:9999;">
+        <div style="width:min(520px,92vw); background:#fff; border:0.5px solid #111; 
+                position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); 
+                padding:16px; display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong>QR로 보내기</strong>
+                <button id="qrClose" class="btn">닫기</button>
+            </div>
+            <div id="qrCanvasWrap" style="display:grid; place-items:center; min-height:220px; border:0.5px solid #111;">
+            </div>
+            <div style="font-size:12px; color:#777;">링크:</div>
+            <input id="qrLink" type="text" readonly style="width:100%; border:0.5px solid #111; padding:8px;">
+            <div style="font-size:12px; color:#2878b4;">휴대폰 카메라로 QR을 스캔하거나, 링크를 복사해 열면 정원이 복원됩니다.</div>
+        </div>
+    </div>
+    <script>
+        /** -------------------------------------------------------
+         *  정원 상태 내보내기 / 받아오기 (서버 없이 QR로 공유)
+         *  - exportGardenState(): #canvas에서 상태 추출
+         *  - importGardenState(obj): 상태를 #canvas에 복원
+         *  - makeShareLink(): 상태를 LZ 압축하여 #share=… 로 만든 링크 반환
+         *  - showQR(): 링크를 QR로 렌더링
+         * ------------------------------------------------------*/
+
+        // px → % 유틸
+        function pxToPercent(px, total) {
+            return Math.max(0, Math.min(100, (px / (total || 1)) * 100));
+        }
+
+        // 현재 #canvas DOM을 스캔해서 상태 추출
+        function exportGardenState() {
+            const $canvas = document.getElementById('canvas');
+            if (!$canvas) throw new Error('#canvas 없음');
+
+            const rect = $canvas.getBoundingClientRect();
+            const W = rect.width, H = rect.height;
+
+            // 배경 이미지 (style.backgroundImage: url("..."))
+            let bg = '';
+            const bgImg = ($canvas.style.backgroundImage || '').trim();
+            if (bgImg && bgImg !== 'none') {
+                const m = bgImg.match(/url\\(["']?(.*?)["']?\\)/i);
+                bg = m ? m[1] : '';
+            }
+
+            // 오브젝트: 캔버스 자식 중 IMG 및 [data-obj]로 추정되는 요소
+            const items = [];
+            $canvas.querySelectorAll('img, .object, .item, [data-obj]').forEach(el => {
+                // 미리보기 전용/선택박스 등은 제외
+                if (el.classList.contains('selbox') || el.classList.contains('handle')) return;
+
+                const st = getComputedStyle(el);
+                // 위치/사이즈
+                const b = el.getBoundingClientRect();
+
+                // 회전 추출 (transform: matrix(...) or matrix3d(...))
+                let rot = 0;
+                const tr = st.transform;
+                if (tr && tr !== 'none') {
+                    const m = tr.match(/matrix\\(([^)]+)\\)/) || tr.match(/matrix3d\\(([^)]+)\\)/);
+                    if (m) {
+                        const vals = m[1].split(',').map(v => parseFloat(v));
+                        // 2D matrix(a, b, c, d, e, f) → angle = atan2(b, a)
+                        const a = vals[0], b2 = vals[1];
+                        if (isFinite(a) && isFinite(b2)) rot = Math.atan2(b2, a) * (180 / Math.PI);
+                    }
+                }
+
+                // 소스(URL) — IMG면 src, 아니면 background-image 추정
+                let src = '';
+                if (el.tagName === 'IMG' && el.src) src = el.src;
+                else {
+                    const bg = st.backgroundImage;
+                    if (bg && bg !== 'none') {
+                        const mm = bg.match(/url\\(["']?(.*?)["']?\\)/i);
+                        if (mm) src = mm[1];
+                    }
+                }
+                if (!src) return; // 소스 없는 장식은 제외
+
+                // % 단위로 저장 (다른 화면에서도 비슷한 위치/비율 재현)
+                items.push({
+                    src,
+                    x: pxToPercent(b.left - rect.left, W),
+                    y: pxToPercent(b.top - rect.top, H),
+                    w: pxToPercent(b.width, W),
+                    h: pxToPercent(b.height, H),
+                    r: Math.round(rot * 10) / 10
+                });
+            });
+
+            return { bg, items };
+        }
+
+        // 상태를 #canvas에 복원 (간단 렌더)
+        async function importGardenState(state) {
+            const $canvas = document.getElementById('canvas');
+            if (!$canvas || !state) return;
+
+            // 초기화
+            $canvas.innerHTML = '';
+
+            if (state.bg) {
+                $canvas.style.backgroundImage = `url(${state.bg})`;
+                $canvas.style.backgroundSize = 'cover';
+                $canvas.style.backgroundPosition = 'center';
+            } else {
+                $canvas.style.backgroundImage = '';
+            }
+
+            const rect = $canvas.getBoundingClientRect();
+            const W = rect.width, H = rect.height;
+
+            for (const it of (state.items || [])) {
+                const img = document.createElement('img');
+                img.decoding = 'async';
+                img.loading = 'lazy';
+                img.crossOrigin = 'anonymous';
+                img.src = it.src;
+
+                // 절대 위치
+                Object.assign(img.style, {
+                    position: 'absolute',
+                    left: (it.x / 100) * W + 'px',
+                    top: (it.y / 100) * H + 'px',
+                    width: (it.w / 100) * W + 'px',
+                    height: (it.h / 100) * H + 'px',
+                    transform: `rotate(${it.r || 0}deg)`
+                });
+                $canvas.appendChild(img);
+                // 이미지 로드 보정(선택)
+                await new Promise(r => img.complete ? r() : img.addEventListener('load', r, { once: true }));
+            }
+        }
+
+        // 상태 → 공유 링크 만들기(#share=…)
+        function makeShareLink() {
+            const state = exportGardenState();
+
+            // 압축(문자열 → base64-URI-safe)
+            const json = JSON.stringify(state);
+            const packed = LZString.compressToEncodedURIComponent(json);
+
+            // 현재 페이지 URL에 붙이기 (쿼리는 유지, 해시에 #share= 추가)
+            const u = new URL(window.location.href);
+            u.hash = 'share=' + packed;
+            return u.toString();
+        }
+
+        // QR 렌더
+        function showQR(link) {
+            const modal = document.getElementById('qrModal');
+            const wrap = document.getElementById('qrCanvasWrap');
+            const input = document.getElementById('qrLink');
+            if (!modal || !wrap || !input) return;
+
+            wrap.innerHTML = '';
+            input.value = link;
+
+            // 300px 정도로 생성 (원하면 조절 가능)
+            QRCode.toCanvas(link, { width: 300 }, (err, cvs) => {
+                if (err) { alert('QR 생성 실패'); return; }
+                wrap.appendChild(cvs);
+            });
+
+            modal.style.display = 'block';
+        }
+
+        // 버튼 바인딩
+        document.getElementById('btnQR')?.addEventListener('click', () => {
+            try {
+                const link = makeShareLink();
+                showQR(link);
+            } catch (e) {
+                console.error(e);
+                alert('정원 상태를 불러오지 못했어요.');
+            }
+        });
+        document.getElementById('qrClose')?.addEventListener('click', () => {
+            document.getElementById('qrModal').style.display = 'none';
+        });
+
+        // 📥 페이지가 #share=… 로 열렸다면 자동 복원
+        (function autoImportOnOpen() {
+            const h = window.location.hash || '';
+            const m = h.match(/share=([^&]+)/);
+            if (!m) return;
+            try {
+                const decoded = LZString.decompressFromEncodedURIComponent(m[1]);
+                const state = JSON.parse(decoded);
+                importGardenState(state);
+            } catch (e) {
+                console.warn('공유 상태 복원 실패', e);
+            }
+        })();
+    </script>
+    <!-- QR 코드 생성 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script>
+        /** ============ 유틸 ============ **/
+        function dataURLToBlob(dataUrl) {
+            const arr = dataUrl.split(','), mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]); let n = bstr.length; const u8 = new Uint8Array(n);
+            while (n--) u8[n] = bstr.charCodeAt(n);
+            return new Blob([u8], { type: mime });
+        }
+
+        async function captureGardenAsDataURL() {
+            // 1) 기존에 날짜별 캡처가 있으면 우선 사용 (달력 연동 저장 로직 있음)
+            try {
+                const dateStr = (document.getElementById('dateBadge')?.textContent || '').trim();
+                if (dateStr) {
+                    const raw = (typeof DataBridge?.readAny === 'function') ? DataBridge.readAny(dateStr) : null;
+                    if (raw?.capture && raw.capture.startsWith('data:image')) return raw.capture;
+                }
+            } catch (e) { /* ignore */ }
+
+            // 2) 없으면 현재 #canvas를 캡처
+            const canvasEl = document.getElementById('canvas');
+            if (!canvasEl) throw new Error('#canvas 없음');
+            // 캡처 순간 보정 (선택박스/테두리 숨김 등) — 이미 CSS도 반영돼 있음
+            canvasEl.setAttribute('data-capturing', '1');
+            const cvs = await html2canvas(canvasEl, { useCORS: true, allowTaint: true, scale: 1 });
+            canvasEl.removeAttribute('data-capturing');
+
+            // JPEG로 살짝 압축 (용량↓, 전송 안정)
+            return cvs.toDataURL('image/jpeg', 0.92);
+        }
+
+        async function uploadTempImage(dataUrl) {
+            // 백엔드 없이 임시 업로드(링크 만듦): file.io (유효기간 기본 1주; 정책 변경 시 실패할 수 있음)
+            const blob = dataURLToBlob(dataUrl);
+            const fd = new FormData();
+            fd.append('file', blob, `moodiary_${Date.now()}.jpg`);
+
+            const res = await fetch('https://file.io/?expires=1w', { method: 'POST', body: fd });
+            const j = await res.json();
+            if (!res.ok || !j?.success || !j?.link) {
+                throw new Error(j?.error || '업로드 실패');
+            }
+            return j.link; // 예: https://file.io/XXXX
+        }
+
+        function showQR(link) {
+            const modal = document.getElementById('qrModal');
+            const wrap = document.getElementById('qrCanvasWrap');
+            const input = document.getElementById('qrLink');
+            if (!modal || !wrap || !input) return;
+
+            wrap.innerHTML = '';
+            input.value = link;
+
+            QRCode.toCanvas(link, { width: 300 }, (err, cvs) => {
+                if (err) { alert('QR 생성 실패'); return; }
+                wrap.appendChild(cvs);
+            });
+
+            modal.style.display = 'block';
+        }
+
+        document.getElementById('qrClose')?.addEventListener('click', () => {
+            document.getElementById('qrModal').style.display = 'none';
+        });
+
+        /** ============ 메인 핸들러 ============ **/
+        document.getElementById('btnQR')?.addEventListener('click', async () => {
+            try {
+                // 1) 캡처 가져오기
+                const dataUrl = await captureGardenAsDataURL();
+
+                // 2) 임시 업로드 → 링크 얻기
+                const link = await uploadTempImage(dataUrl);
+
+                // 3) QR 생성/표시
+                showQR(link);
+            } catch (e) {
+                console.error(e);
+                alert('QR 공유에 실패했어요. 잠시 후 다시 시도하거나, 캡처 저장 후 직접 전송해 주세요.\n' + (e?.message || e));
+            }
+        });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+        referrerpolicy="no-referrer"></script>
+    <script>
+        /**
+         * ✅ 흐름
+         * 1) #canvas 를 html2canvas 로 캡처 → PNG Blob
+         * 2) GoFile 에 익명 업로드 → 공유 URL 수신
+         * 3) 모달에 QR 생성 + 링크 표기
+         *
+         *  참고: GoFile 은 브라우저에서 multipart/form-data 로 바로 업로드 가능 (공식 업로드 엔드포인트)
+         *  1순위: https://upload.gofile.io/uploadfile
+         *  예비  : https://api.gofile.io/getServer → https://{server}.gofile.io/uploadFile
+         *
+         *  Docs: POST /uploadfile 로 업로드하면 공유 링크(다운로드 페이지/코드)를 받습니다. 
+         */
+        (function () {
+            const btnQR = document.getElementById('btnQR');
+            const modal = document.getElementById('qrModal');
+            const btnClose = document.getElementById('qrClose');
+            const qrWrap = document.getElementById('qrCanvasWrap');
+            const qrLink = document.getElementById('qrLink');
+            const canvasBox = document.getElementById('canvas'); // 편집 캔버스(정원)
+
+            if (!btnQR || !modal || !qrWrap || !qrLink || !canvasBox) return;
+
+            // 날짜 문자열 헬퍼
+            const z = n => String(n).padStart(2, '0');
+            const currentDateStr = () => {
+                const d = new Date();
+                return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+            };
+
+            // 1) html2canvas 캡처 → Blob
+            async function captureCanvasToBlob() {
+                // 캡처 중 UI 테두리/핸들 숨김 (CSS data-속성 활용)
+                canvasBox.setAttribute('data-capturing', '1');
+                await new Promise(r => requestAnimationFrame(r));
+
+                const scale = Math.min(2, window.devicePixelRatio || 1); // 과도한 초고해상도 방지
+                const cv = await html2canvas(canvasBox, {
+                    useCORS: true,                // 외부이미지 CORS 허용 시 픽셀 접근 가능
+                    backgroundColor: '#ffffff',   // 흰 배경 (투명 대신 폰 저장 시 깔끔)
+                    scale
+                });
+
+                canvasBox.removeAttribute('data-capturing');
+
+                return await new Promise(res => cv.toBlob(b => res(b), 'image/png', 0.95));
+            }
+
+            // 2) GoFile 업로드 (우선 글로벌 엔드포인트, 실패 시 서버 조회→대체 업로드)
+            async function uploadToGoFile(blob, filename) {
+                // A안: 글로벌 엔드포인트
+                const tryGlobal = async () => {
+                    const fd = new FormData();
+                    fd.append('file', blob, filename);
+                    const r = await fetch('https://upload.gofile.io/uploadfile', { method: 'POST', body: fd });
+                    if (!r.ok) throw new Error('global upload failed: ' + r.status);
+                    return await r.json();
+                };
+
+                // B안: 서버 조회 후 업로드 (호환용)
+                const tryServer = async () => {
+                    const srvRes = await fetch('https://api.gofile.io/getServer');
+                    const srv = await srvRes.json();
+                    const server = srv?.data?.server;
+                    if (!server) throw new Error('no server from getServer');
+                    const url = `https://${server}.gofile.io/uploadFile`;
+                    const fd = new FormData();
+                    fd.append('file', blob, filename);
+                    const r = await fetch(url, { method: 'POST', body: fd });
+                    if (!r.ok) throw new Error('server upload failed: ' + r.status);
+                    return await r.json();
+                };
+
+                // 실행
+                try {
+                    return await tryGlobal();
+                } catch {
+                    return await tryServer();
+                }
+            }
+
+            // 3) API 응답에서 공유 링크 뽑기 (여러 포맷 호환)
+            function extractShareLink(apiJson) {
+                // 응답 포맷 예시(공식 문서/예제 기반):
+                // { status: "success", data: { code, downloadPage, directLink } }
+                const d = apiJson?.data || {};
+                return d.downloadPage || d.directLink || (d.code ? `https://gofile.io/d/${d.code}` : null);
+            }
+
+            // 4) QR 생성
+            function renderQR(link) {
+                // 이전 QR 제거
+                qrWrap.innerHTML = '';
+                new QRCode(qrWrap, { text: link, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+                qrLink.value = link;
+            }
+
+            // 5) 모달 토글
+            function openModal() { modal.style.display = 'block'; }
+            function closeModal() { modal.style.display = 'none'; }
+
+            btnClose?.addEventListener('click', closeModal);
+
+            // 메인: 버튼 클릭 → 진행
+            btnQR.addEventListener('click', async () => {
+                try {
+                    btnQR.disabled = true;
+                    btnQR.textContent = '생성 중…';
+
+                    // (1) 캡처
+                    const blob = await captureCanvasToBlob();
+                    if (!blob) throw new Error('캡처 실패');
+
+                    // (2) 업로드
+                    const filename = `moodiary_${currentDateStr()}.png`;
+                    const apiJson = await uploadToGoFile(blob, filename);
+
+                    // (3) 링크 추출
+                    const link = extractShareLink(apiJson);
+                    if (!link) throw new Error('링크 추출 실패');
+
+                    // (4) QR 표시
+                    renderQR(link);
+                    openModal();
+                } catch (e) {
+                    alert('QR 생성/업로드 중 문제가 발생했어요.\n' + (e?.message || e));
+                    console.error(e);
+                } finally {
+                    btnQR.disabled = false;
+                    btnQR.textContent = 'QR로 보내기';
+                }
+            });
+
+            // 모달 외부 클릭 닫기
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+        })();
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+        referrerpolicy="no-referrer"></script>
+    <script>
+        (function () {
+            const btnQR = document.getElementById('btnQR');
+            const modal = document.getElementById('qrModal');
+            const btnClose = document.getElementById('qrClose');
+            const qrWrap = document.getElementById('qrCanvasWrap');
+            const qrLink = document.getElementById('qrLink');
+            const canvasBox = document.getElementById('canvas');
+
+            if (!btnQR || !modal || !qrWrap || !qrLink || !canvasBox) return;
+
+            const z = n => String(n).padStart(2, '0');
+            const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
+
+            async function captureBlob() {
+                canvasBox.setAttribute('data-capturing', '1');
+                await new Promise(r => requestAnimationFrame(r));
+                const scale = Math.min(2, window.devicePixelRatio || 1);
+                const cv = await html2canvas(canvasBox, { useCORS: true, backgroundColor: '#ffffff', scale });
+                canvasBox.removeAttribute('data-capturing');
+                return await new Promise(res => cv.toBlob(b => res(b), 'image/png', 0.95));
+            }
+
+            async function uploadAnon(blob, filename) {
+                // 우선 글로벌 엔드포인트 → 실패 시 서버 조회 fallback
+                const tryGlobal = async () => {
+                    const fd = new FormData(); fd.append('file', blob, filename);
+                    const r = await fetch('https://upload.gofile.io/uploadfile', { method: 'POST', body: fd, mode: 'cors', cache: 'no-store' });
+                    if (!r.ok) throw new Error('global upload failed: ' + r.status);
+                    return await r.json();
+                };
+                const tryServer = async () => {
+                    const s = await fetch('https://api.gofile.io/getServer', { cache: 'no-store' }).then(r => r.json());
+                    if (!s?.data?.server) throw new Error('no server');
+                    const fd = new FormData(); fd.append('file', blob, filename);
+                    const url = `https://${s.data.server}.gofile.io/uploadFile`;
+                    const r = await fetch(url, { method: 'POST', body: fd, mode: 'cors', cache: 'no-store' });
+                    if (!r.ok) throw new Error('server upload failed: ' + r.status);
+                    return await r.json();
+                };
+                try { return await tryGlobal(); } catch (e) { console.warn(e); return await tryServer(); }
+            }
+
+            function pickLink(json) {
+                const d = json?.data || {};
+                return d.downloadPage || d.directLink || (d.code ? `https://gofile.io/d/${d.code}` : null);
+            }
+
+            function showQR(link) {
+                qrWrap.innerHTML = '';
+                new QRCode(qrWrap, { text: link, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+                qrLink.value = link;
+                modal.style.display = 'block';
+            }
+            function hideModal() { modal.style.display = 'none'; }
+            btnClose?.addEventListener('click', hideModal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
+
+            btnQR.addEventListener('click', async () => {
+                try {
+                    btnQR.disabled = true; btnQR.textContent = '캡처·업로드 중…';
+                    const blob = await captureBlob();
+                    if (!blob || blob.size < 1000) throw new Error('캡처가 비어있어요(CORS/이미지 경로 확인).');
+
+                    const json = await uploadAnon(blob, `moodiary_${todayStr()}.png`);
+                    console.log('upload response:', json);
+                    const link = pickLink(json);
+                    if (!link) throw new Error('공유 링크를 받지 못했어요.');
+
+                    showQR(link);
+                } catch (e) {
+                    console.error(e);
+                    alert('QR 생성 실패: ' + (e?.message || e));
+                } finally {
+                    btnQR.disabled = false; btnQR.textContent = 'QR로 보내기';
+                }
+            });
+        })();
     </script>
 
 </body>
