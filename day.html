@@ -4594,11 +4594,22 @@
                         if (isFinite(a) && isFinite(b2)) rot = Math.atan2(b2, a) * (180 / Math.PI);
                     }
                 }
+                function normalizeSrc(u) {
+                    try {
+                        const url = new URL(u, window.location.href);
+                        // 같은 오리진이면 경로만 저장 (상대경로화)
+                        if (url.origin === window.location.origin) return url.pathname + url.search + url.hash;
+                        return u; // 다른 오리진은 그대로 두되, CORS 가능한 곳만 사용
+                    } catch {
+                        return u; // 상대경로 등은 그대로 반환
+                    }
+                }
 
                 // 소스(URL) — IMG면 src, 아니면 background-image 추정
                 let src = '';
-                if (el.tagName === 'IMG' && el.src) src = el.src;
-                else {
+                if (el.tagName === 'IMG') {
+                    src = el.getAttribute('src') || el.src; // 상대경로 우선 저장
+                } else {
                     const bg = st.backgroundImage;
                     if (bg && bg !== 'none') {
                         const mm = bg.match(/url\\(["']?(.*?)["']?\\)/i);
