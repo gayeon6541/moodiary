@@ -1,135 +1,58 @@
-<!DOCTYPE html>
-<html lang="ko">
-
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>MOODIARY – 공유 보기</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css"
-        crossorigin>
-    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js" crossorigin></script>
-    <style>
-        body {
-            margin: 0;
-            font-family: Pretendard, system-ui, -apple-system, sans-serif;
-            background: #fff;
-            color: #111;
-        }
-
-        header {
-            padding: 10px 14px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        main {
-            padding: 14px;
-            display: grid;
-            gap: 14px;
-        }
-
-        #canvas {
-            position: relative;
-            width: min(92vw, 640px);
-            aspect-ratio: 1/1;
-            border: 0.5px solid #111;
-            background-size: cover;
-            background-position: center;
-            overflow: hidden;
-            margin: 0 auto;
-        }
-
-        #canvas img {
-            position: absolute;
-            transform-origin: center center;
-        }
-
-        .hint {
-            font-size: 13px;
-            color: #777;
-            text-align: center
-        }
-
-        .actions {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-        }
-
-        .btn {
-            appearance: none;
-            border: 0.5px solid #111;
-            background: #fff;
-            padding: 8px 12px;
-            cursor: pointer
-        }
-    </style>
-</head>
-
-<body>
-    <header>
-        <strong>공유된 정원 보기</strong>
-        <div id="dateLabel" style="font-size:13px; color:#777">—</div>
-    </header>
-    <main>
-        <div id="canvas" aria-label="공유 정원"></div>
-        <div class="actions">
-            <button class="btn" id="btnSave">이미지로 저장</button>
-        </div>
-        <div class="hint">이미지를 길게 눌러 저장하거나, “이미지로 저장”을 눌러 캡처하세요.</div>
-    </main>
-
-    <!-- html2canvas (이미지 저장용) -->
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin></script>
-    <script>
-        (function () {
-            function restore(state) {
-                const canvas = document.getElementById('canvas');
-                if (!canvas) return;
-                if (state.bg) canvas.style.backgroundImage = `url("${state.bg}")`;
-                document.getElementById('dateLabel').textContent = state.date || '—';
-
-                const W = canvas.clientWidth, H = canvas.clientHeight;
-
-                (state.items || []).forEach(it => {
-                    const img = document.createElement('img');
-                    if (it.src) img.src = it.src;
-                    img.style.left = (it.x * W) + 'px';
-                    img.style.top = (it.y * H) + 'px';
-                    img.style.width = (it.w * W) + 'px';
-                    img.style.height = (it.h * H) + 'px';
-                    img.style.zIndex = String(it.z ?? 0);
-                    const rot = it.rotate || 0;
-                    const sc = it.scale || 1;
-                    img.style.transform = `rotate(${rot}deg) scale(${sc})`;
-                    canvas.appendChild(img);
+<script>
+    (function () {
+        // 모든 <img> 로딩 대기
+        async function waitForImages(root) {
+            const imgs = Array.from(root.querySelectorAll('img'));
+            await Promise.all(imgs.map(img => {
+                if (img.complete) return;
+                return new Promise(res => {
+                    img.onload = img.onerror = res;
                 });
-            }
+            }));
+        }
 
-            // 해시 읽기 → 복원
-            const hash = location.hash.startsWith('#') ? location.hash.slice(1) : '';
-            try {
-                const json = LZString.decompressFromEncodedURIComponent(hash) || '';
-                const state = JSON.parse(json);
-                restore(state);
-            } catch (e) {
-                console.warn('복원 실패', e);
-            }
+        // 저장 버튼: 오프스크린 복제본(1080x1080)으로 확정 캡처
+        document.getElementById('btnSave')?.addEventListener('click', async () => {
+            const src = document.getElementById('canvas');
+            if (!src) return;
 
-            // 저장
-            document.getElementById('btnSave')?.addEventListener('click', async () => {
-                const canvasEl = document.getElementById('canvas');
-                const cvs = await html2canvas(canvasEl, { backgroundColor: null });
-                const url = cvs.toDataURL('image/png', 0.95);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `moodiary_share_${Date.now()}.png`;
-                a.click();
+            // 1) 복제본 만들기 (화면 밖)
+            const clone = src.cloneNode(true);
+            const EXPORT = 1080;             // 내보낼 정사각 해상도(원하면 1440 등으로 ↑)
+            Object.assign(clone.style, {
+                position: 'fixed',
+                left: '-99999px',
+                top: '0',
+                width: EXPORT + 'px',
+                height: EXPORT + 'px',
+                border: 'none',
+                overflow: 'hidden'
             });
-        })();
-    </script>
-</body>
+            document.body.appendChild(clone);
 
-</html>
+            // 2) 복제본 내부 이미지 로딩 대기
+            await waitForImages(clone);
+
+            // 3) 캡처 (뷰포트/스크롤 영향 제거 + 고정 크기)
+            const cvs = await html2canvas(clone, {
+                backgroundColor: null,
+                useCORS: true,
+                scale: 2,               // 선명도(RETINA면 2~3 권장)
+                width: EXPORT,
+                height: EXPORT,
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: EXPORT,
+                windowHeight: EXPORT
+            });
+
+            // 4) 복제본 제거 + 다운로드
+            document.body.removeChild(clone);
+            const url = cvs.toDataURL('image/png', 0.95);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `moodiary_share_${Date.now()}.png`;
+            a.click();
+        });
+    })();
+</script>
