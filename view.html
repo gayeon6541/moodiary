@@ -89,57 +89,68 @@
                 const canvas = document.getElementById('canvas');
                 if (!canvas) return;
 
-                // 배경 이미지 설정
                 if (state.bg) canvas.style.backgroundImage = `url("${state.bg}")`;
                 document.getElementById('dateLabel').textContent = state.date || '—';
 
-                // === 고정 크기 기준값 ===
-                const BASE = 1000; // day.html 저장 시 1x1 비율을 가정 → 1000 단위로 환산
+                // 캔버스 실제 표시 크기
                 const W = canvas.clientWidth;
                 const H = canvas.clientHeight;
 
-                // 캔버스 내 오브젝트 복원
+                // 저장된 비율(x,y,w,h : 0~1)을 화면 크기에 맞게 환산
                 (state.items || []).forEach(it => {
                     const img = document.createElement('img');
                     if (it.src) img.src = it.src;
 
-                    // 저장된 비율값을 실제 화면 크기에 맞게 스케일링
                     const x = (it.x ?? 0) * W;
                     const y = (it.y ?? 0) * H;
                     const w = (it.w ?? 0) * W;
                     const h = (it.h ?? 0) * H;
 
-                    img.style.left = `${x}px`;
-                    img.style.top = `${y}px`;
-                    img.style.width = `${w}px`;
-                    img.style.height = `${h}px`;
-
+                    // 좌상단 기준(편집기와 동일 기준) 배치
+                    img.style.left = x + 'px';
+                    img.style.top = y + 'px';
+                    img.style.width = w + 'px';
+                    img.style.height = h + 'px';
                     img.style.zIndex = String(it.z ?? 0);
+
                     const rot = it.rotate || 0;
                     const sc = it.scale || 1;
-                    img.style.transform = `translate(-50%, -50%) rotate(${rot}deg) scale(${sc})`;
-                    img.style.position = 'absolute';
                     img.style.transformOrigin = 'center center';
-
+                    img.style.transform = `rotate(${rot}deg) scale(${sc})`;
                     canvas.appendChild(img);
                 });
             }
 
-            // 해시 복원
+            // 해시 읽어 복원
             const hash = location.hash.startsWith('#') ? location.hash.slice(1) : '';
             try {
                 const json = LZString.decompressFromEncodedURIComponent(hash) || '';
                 const state = JSON.parse(json);
                 restore(state);
-            } catch (e) {
-                console.warn('복원 실패', e);
-            }
+            } catch (e) { console.warn('복원 실패', e); }
 
-            // 이미지 저장 기능
+            // 🔽 이미지 저장: DPR 고정(=1), 정확한 폭/높이 천명
             document.getElementById('btnSave')?.addEventListener('click', async () => {
-                const canvasEl = document.getElementById('canvas');
-                const cvs = await html2canvas(canvasEl, { backgroundColor: null, scale: 2 });
-                const url = cvs.toDataURL('image/png', 0.95);
+                const el = document.getElementById('canvas');
+                const w = el.clientWidth;
+                const h = el.clientHeight;
+
+                // 스크롤 영향 제거
+                const rect = el.getBoundingClientRect();
+                const x = Math.max(0, rect.left + window.scrollX);
+                const y = Math.max(0, rect.top + window.scrollY);
+
+                const shot = await html2canvas(el, {
+                    backgroundColor: null,
+                    scale: 1,           // ← DPR 무시(1배)
+                    width: w,          // ← 결과 폭 고정
+                    height: h,          // ← 결과 높이 고정
+                    x, y,               // ← 정확히 요소 영역만 렌더
+                    useCORS: true,
+                    imageTimeout: 0
+                });
+
+                const url = shot.toDataURL('image/png', 0.95);
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = `moodiary_share_${Date.now()}.png`;
@@ -147,6 +158,7 @@
             });
         })();
     </script>
+
 </body>
 
 </html>

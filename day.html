@@ -5167,20 +5167,45 @@
         }
 
         // 오늘 선택 날짜의 저장본만 읽기(없으면 throw)
-        async function captureGardenAsDataURL() {
-            const dateStr = (document.getElementById('dateBadge')?.textContent || '').trim();
-            if (!dateStr) throw new Error('오늘 날짜를 찾을 수 없어요.');
+        async function captureEditorExact() {
+            const el = document.getElementById('canvas');  // 편집 캔버스
+            const w = el.clientWidth;
+            const h = el.clientHeight;
+
+            const rect = el.getBoundingClientRect();
+            const x = Math.max(0, rect.left + window.scrollX);
+            const y = Math.max(0, rect.top + window.scrollY);
+
+            // 캡처 직전 보정(선택박스 숨김 등) — 이미 data-capturing 스타일이 있으면 활용
+            el.setAttribute('data-capturing', '1');
+
             try {
-                if (typeof DataBridge?.readAny === 'function') {
-                    const raw = DataBridge.readAny(dateStr);
-                    if (raw?.capture?.startsWith('data:image')) return raw.capture;
-                }
-            } catch { }
-            const lsKey = `garden_capture_${dateStr}`;
-            const saved = localStorage.getItem(lsKey);
-            if (saved?.startsWith('data:image')) return saved;
-            throw new Error('저장된 캡처가 없어요. 먼저 "정원 캡처 저장"을 눌러 주세요.');
+                const shot = await html2canvas(el, {
+                    backgroundColor: null,
+                    scale: 1,          // DPR 무시
+                    width: w,
+                    height: h,
+                    x, y,
+                    useCORS: true,
+                    imageTimeout: 0
+                });
+                return shot.toDataURL('image/png', 0.95);
+            } finally {
+                el.removeAttribute('data-capturing');
+            }
         }
+
+        /** "캡처 저장" 버튼 클릭 시 */
+        document.getElementById('btnCapture')?.addEventListener('click', async () => {
+            try {
+                const dataUrl = await captureEditorExact();
+                // 👉 이후 로직: 미리보기/저장/로컬스토리지 기록 등 기존 처리로 연결
+                //    예: localStorage.setItem(`garden_capture_${현재날짜}`, dataUrl);
+            } catch (e) {
+                alert('캡처에 실패했어요. 잠시 후 다시 시도해 주세요.');
+                console.error(e);
+            }
+        });
 
         // 아무 날짜 것이나 하나라도 있으면 true (QR 버튼 글로벌 활성 조건)
         function hasAnySavedCapture() {
