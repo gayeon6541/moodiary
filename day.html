@@ -4822,224 +4822,106 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
         referrerpolicy="no-referrer"></script>
     <script>
-        /**
-         * ✅ 흐름
-         * 1) #canvas 를 html2canvas 로 캡처 → PNG Blob
-         * 2) GoFile 에 익명 업로드 → 공유 URL 수신
-         * 3) 모달에 QR 생성 + 링크 표기
-         *
-         *  참고: GoFile 은 브라우저에서 multipart/form-data 로 바로 업로드 가능 (공식 업로드 엔드포인트)
-         *  1순위: https://upload.gofile.io/uploadfile
-         *  예비  : https://api.gofile.io/getServer → https://{server}.gofile.io/uploadFile
-         *
-         *  Docs: POST /uploadfile 로 업로드하면 공유 링크(다운로드 페이지/코드)를 받습니다. 
-         */
         (function () {
             const btnQR = document.getElementById('btnQR');
             const modal = document.getElementById('qrModal');
-            const btnClose = document.getElementById('qrClose');
+            const close = document.getElementById('qrClose');
             const qrWrap = document.getElementById('qrCanvasWrap');
             const qrLink = document.getElementById('qrLink');
-            const canvasBox = document.getElementById('canvas'); // 편집 캔버스(정원)
 
-            if (!btnQR || !modal || !qrWrap || !qrLink || !canvasBox) return;
+            function makeShareURL(stateObj) {
+                // ① JSON 직렬화 → ② UTF-16 압축 → ③ URL-safe Base64
+                const json = JSON.stringify(stateObj);
+                const packed = LZString.compressToEncodedURIComponent(json);
+                // 깃허브 Pages 기준의 보기 페이지(아래에서 만드는 view.html)에 붙입니다.
+                // 깃허브 사용자/리포 경로에 맞게 수정하세요!
+                const BASE = location.origin + location.pathname.replace(/\/[^\/]*$/, '/');
+                // 예) https://gayeon6541.github.io/moodiary/
+                const url = BASE + 'view.html#' + packed;
+                return url;
+            }
 
-            // 날짜 문자열 헬퍼
-            const z = n => String(n).padStart(2, '0');
-            const currentDateStr = () => {
-                const d = new Date();
-                return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
-            };
+            function openQR() {
+                // 1) 상태 수집
+                const state = collectGardenState();
 
-            // 1) html2canvas 캡처 → Blob
-            async function captureCanvasToBlob() {
-                // 캡처 중 UI 테두리/핸들 숨김 (CSS data-속성 활용)
-                canvasBox.setAttribute('data-capturing', '1');
-                await new Promise(r => requestAnimationFrame(r));
+                // 2) 공유 URL 생성
+                const url = makeShareURL(state);
 
-                const scale = Math.min(2, window.devicePixelRatio || 1); // 과도한 초고해상도 방지
-                const cv = await html2canvas(canvasBox, {
-                    useCORS: true,                // 외부이미지 CORS 허용 시 픽셀 접근 가능
-                    backgroundColor: '#ffffff',   // 흰 배경 (투명 대신 폰 저장 시 깔끔)
-                    scale
+                // 3) QR 생성
+                qrWrap.innerHTML = '';
+                const q = document.createElement('div');
+                qrWrap.appendChild(q);
+                new QRCode(q, {
+                    text: url,
+                    width: 220,
+                    height: 220,
+                    correctLevel: QRCode.CorrectLevel.M
                 });
 
-                canvasBox.removeAttribute('data-capturing');
+                // 4) 링크 표시
+                qrLink.value = url;
 
-                return await new Promise(res => cv.toBlob(b => res(b), 'image/png', 0.95));
+                // 5) 모달 on
+                modal.style.display = 'block';
             }
 
-            // 2) GoFile 업로드 (우선 글로벌 엔드포인트, 실패 시 서버 조회→대체 업로드)
-            async function uploadToGoFile(blob, filename) {
-                // A안: 글로벌 엔드포인트
-                const tryGlobal = async () => {
-                    const fd = new FormData();
-                    fd.append('file', blob, filename);
-                    const r = await fetch('https://upload.gofile.io/uploadfile', { method: 'POST', body: fd });
-                    if (!r.ok) throw new Error('global upload failed: ' + r.status);
-                    return await r.json();
-                };
-
-                // B안: 서버 조회 후 업로드 (호환용)
-                const tryServer = async () => {
-                    const srvRes = await fetch('https://api.gofile.io/getServer');
-                    const srv = await srvRes.json();
-                    const server = srv?.data?.server;
-                    if (!server) throw new Error('no server from getServer');
-                    const url = `https://${server}.gofile.io/uploadFile`;
-                    const fd = new FormData();
-                    fd.append('file', blob, filename);
-                    const r = await fetch(url, { method: 'POST', body: fd });
-                    if (!r.ok) throw new Error('server upload failed: ' + r.status);
-                    return await r.json();
-                };
-
-                // 실행
-                try {
-                    return await tryGlobal();
-                } catch {
-                    return await tryServer();
-                }
-            }
-
-            // 3) API 응답에서 공유 링크 뽑기 (여러 포맷 호환)
-            function extractShareLink(apiJson) {
-                // 응답 포맷 예시(공식 문서/예제 기반):
-                // { status: "success", data: { code, downloadPage, directLink } }
-                const d = apiJson?.data || {};
-                return d.downloadPage || d.directLink || (d.code ? `https://gofile.io/d/${d.code}` : null);
-            }
-
-            // 4) QR 생성
-            function renderQR(link) {
-                // 이전 QR 제거
-                qrWrap.innerHTML = '';
-                new QRCode(qrWrap, { text: link, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
-                qrLink.value = link;
-            }
-
-            // 5) 모달 토글
-            function openModal() { modal.style.display = 'block'; }
-            function closeModal() { modal.style.display = 'none'; }
-
-            btnClose?.addEventListener('click', closeModal);
-
-            // 메인: 버튼 클릭 → 진행
-            btnQR.addEventListener('click', async () => {
-                try {
-                    btnQR.disabled = true;
-                    btnQR.textContent = '생성 중…';
-
-                    // (1) 캡처
-                    const blob = await captureCanvasToBlob();
-                    if (!blob) throw new Error('캡처 실패');
-
-                    // (2) 업로드
-                    const filename = `moodiary_${currentDateStr()}.png`;
-                    const apiJson = await uploadToGoFile(blob, filename);
-
-                    // (3) 링크 추출
-                    const link = extractShareLink(apiJson);
-                    if (!link) throw new Error('링크 추출 실패');
-
-                    // (4) QR 표시
-                    renderQR(link);
-                    openModal();
-                } catch (e) {
-                    alert('QR 생성/업로드 중 문제가 발생했어요.\n' + (e?.message || e));
-                    console.error(e);
-                } finally {
-                    btnQR.disabled = false;
-                    btnQR.textContent = 'QR로 보내기';
-                }
-            });
-
-            // 모달 외부 클릭 닫기
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) closeModal();
+            btnQR?.addEventListener('click', openQR);
+            close?.addEventListener('click', () => (modal.style.display = 'none'));
+            modal?.addEventListener('click', (e) => {
+                if (e.target === modal) modal.style.display = 'none';
             });
         })();
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
-        referrerpolicy="no-referrer"></script>
+
+    <!-- QRCode 생성기 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" crossorigin></script>
+    <!-- LZ-String: 긴 상태를 URL 해시에 압축 -->
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js" crossorigin></script>
     <script>
-        (function () {
-            const btnQR = document.getElementById('btnQR');
-            const modal = document.getElementById('qrModal');
-            const btnClose = document.getElementById('qrClose');
-            const qrWrap = document.getElementById('qrCanvasWrap');
-            const qrLink = document.getElementById('qrLink');
-            const canvasBox = document.getElementById('canvas');
+        /** 캔버스 상태 → JSON */
+        function collectGardenState() {
+            const canvas = document.getElementById('canvas');
+            if (!canvas) return { bg: null, items: [] };
 
-            if (!btnQR || !modal || !qrWrap || !qrLink || !canvasBox) return;
+            const styleBg = canvas.style.backgroundImage || '';
+            const bg = styleBg.startsWith('url(') ? styleBg.slice(4, -1).replace(/^"|"$|^'|'$/g, '') : null;
 
-            const z = n => String(n).padStart(2, '0');
-            const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
-
-            async function captureBlob() {
-                canvasBox.setAttribute('data-capturing', '1');
-                await new Promise(r => requestAnimationFrame(r));
-                const scale = Math.min(2, window.devicePixelRatio || 1);
-                const cv = await html2canvas(canvasBox, { useCORS: true, backgroundColor: '#ffffff', scale });
-                canvasBox.removeAttribute('data-capturing');
-                return await new Promise(res => cv.toBlob(b => res(b), 'image/png', 0.95));
-            }
-
-            async function uploadAnon(blob, filename) {
-                // 우선 글로벌 엔드포인트 → 실패 시 서버 조회 fallback
-                const tryGlobal = async () => {
-                    const fd = new FormData(); fd.append('file', blob, filename);
-                    const r = await fetch('https://upload.gofile.io/uploadfile', { method: 'POST', body: fd, mode: 'cors', cache: 'no-store' });
-                    if (!r.ok) throw new Error('global upload failed: ' + r.status);
-                    return await r.json();
-                };
-                const tryServer = async () => {
-                    const s = await fetch('https://api.gofile.io/getServer', { cache: 'no-store' }).then(r => r.json());
-                    if (!s?.data?.server) throw new Error('no server');
-                    const fd = new FormData(); fd.append('file', blob, filename);
-                    const url = `https://${s.data.server}.gofile.io/uploadFile`;
-                    const r = await fetch(url, { method: 'POST', body: fd, mode: 'cors', cache: 'no-store' });
-                    if (!r.ok) throw new Error('server upload failed: ' + r.status);
-                    return await r.json();
-                };
-                try { return await tryGlobal(); } catch (e) { console.warn(e); return await tryServer(); }
-            }
-
-            function pickLink(json) {
-                const d = json?.data || {};
-                return d.downloadPage || d.directLink || (d.code ? `https://gofile.io/d/${d.code}` : null);
-            }
-
-            function showQR(link) {
-                qrWrap.innerHTML = '';
-                new QRCode(qrWrap, { text: link, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
-                qrLink.value = link;
-                modal.style.display = 'block';
-            }
-            function hideModal() { modal.style.display = 'none'; }
-            btnClose?.addEventListener('click', hideModal);
-            modal.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
-
-            btnQR.addEventListener('click', async () => {
-                try {
-                    btnQR.disabled = true; btnQR.textContent = '캡처·업로드 중…';
-                    const blob = await captureBlob();
-                    if (!blob || blob.size < 1000) throw new Error('캡처가 비어있어요(CORS/이미지 경로 확인).');
-
-                    const json = await uploadAnon(blob, `moodiary_${todayStr()}.png`);
-                    console.log('upload response:', json);
-                    const link = pickLink(json);
-                    if (!link) throw new Error('공유 링크를 받지 못했어요.');
-
-                    showQR(link);
-                } catch (e) {
-                    console.error(e);
-                    alert('QR 생성 실패: ' + (e?.message || e));
-                } finally {
-                    btnQR.disabled = false; btnQR.textContent = 'QR로 보내기';
+            const items = Array.from(canvas.querySelectorAll('img, svg, .item')).map(el => {
+                const r = el.getBoundingClientRect();
+                const cr = canvas.getBoundingClientRect();
+                const tx = el.style.transform || getComputedStyle(el).transform || '';
+                let rot = 0, scale = 1;
+                // transform 파싱(대략)
+                if (tx && tx !== 'none') {
+                    const m = tx.match(/matrix\(([^)]+)\)/);
+                    if (m) {
+                        const [a, b, c, d] = m[1].split(',').map(v => parseFloat(v.trim()));
+                        // 회전 추정
+                        rot = Math.round(Math.atan2(b, a) * 180 / Math.PI);
+                        // 스케일 추정
+                        scale = Math.sqrt(a * a + b * b);
+                    }
                 }
+                return {
+                    tag: el.tagName.toLowerCase(),
+                    src: el.getAttribute('src') || null,
+                    // 캔버스 내 상대 좌표/크기(0~1)
+                    x: (r.left - cr.left) / cr.width,
+                    y: (r.top - cr.top) / cr.height,
+                    w: r.width / cr.width,
+                    h: r.height / cr.height,
+                    rotate: rot,
+                    scale: scale,
+                    z: parseInt(getComputedStyle(el).zIndex || '0', 10)
+                };
             });
-        })();
+
+            // 날짜/메모/오늘의 한줄 등도 있으면 같이 넣기
+            const dateStr = (document.getElementById('dateBadge')?.textContent || '').trim();
+            const oneLine = document.getElementById('cardQuote')?.textContent || '';
+            return { version: 1, date: dateStr, bg, items, oneLine };
+        }
     </script>
 
 </body>
