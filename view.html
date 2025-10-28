@@ -88,27 +88,44 @@
             function restore(state) {
                 const canvas = document.getElementById('canvas');
                 if (!canvas) return;
+
+                // 배경 이미지 설정
                 if (state.bg) canvas.style.backgroundImage = `url("${state.bg}")`;
                 document.getElementById('dateLabel').textContent = state.date || '—';
 
-                const W = canvas.clientWidth, H = canvas.clientHeight;
+                // === 고정 크기 기준값 ===
+                const BASE = 1000; // day.html 저장 시 1x1 비율을 가정 → 1000 단위로 환산
+                const W = canvas.clientWidth;
+                const H = canvas.clientHeight;
 
+                // 캔버스 내 오브젝트 복원
                 (state.items || []).forEach(it => {
                     const img = document.createElement('img');
                     if (it.src) img.src = it.src;
-                    img.style.left = (it.x * W) + 'px';
-                    img.style.top = (it.y * H) + 'px';
-                    img.style.width = (it.w * W) + 'px';
-                    img.style.height = (it.h * H) + 'px';
+
+                    // 저장된 비율값을 실제 화면 크기에 맞게 스케일링
+                    const x = (it.x ?? 0) * W;
+                    const y = (it.y ?? 0) * H;
+                    const w = (it.w ?? 0) * W;
+                    const h = (it.h ?? 0) * H;
+
+                    img.style.left = `${x}px`;
+                    img.style.top = `${y}px`;
+                    img.style.width = `${w}px`;
+                    img.style.height = `${h}px`;
+
                     img.style.zIndex = String(it.z ?? 0);
                     const rot = it.rotate || 0;
                     const sc = it.scale || 1;
-                    img.style.transform = `rotate(${rot}deg) scale(${sc})`;
+                    img.style.transform = `translate(-50%, -50%) rotate(${rot}deg) scale(${sc})`;
+                    img.style.position = 'absolute';
+                    img.style.transformOrigin = 'center center';
+
                     canvas.appendChild(img);
                 });
             }
 
-            // 해시 읽기 → 복원
+            // 해시 복원
             const hash = location.hash.startsWith('#') ? location.hash.slice(1) : '';
             try {
                 const json = LZString.decompressFromEncodedURIComponent(hash) || '';
@@ -118,10 +135,10 @@
                 console.warn('복원 실패', e);
             }
 
-            // 저장
+            // 이미지 저장 기능
             document.getElementById('btnSave')?.addEventListener('click', async () => {
                 const canvasEl = document.getElementById('canvas');
-                const cvs = await html2canvas(canvasEl, { backgroundColor: null });
+                const cvs = await html2canvas(canvasEl, { backgroundColor: null, scale: 2 });
                 const url = cvs.toDataURL('image/png', 0.95);
                 const a = document.createElement('a');
                 a.href = url;
