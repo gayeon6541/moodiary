@@ -91,22 +91,15 @@
                 if (state.bg) canvas.style.backgroundImage = `url("${state.bg}")`;
                 document.getElementById('dateLabel').textContent = state.date || '—';
 
-                // 📐 base 비율 보정
-                const W = canvas.clientWidth;
-                const H = canvas.clientHeight;
-                const baseW = state.baseWidth || 1440;  // 캡처 시 기준 너비
-                const baseH = state.baseHeight || 1440; // 캡처 시 기준 높이
-                const scaleX = W / baseW;
-                const scaleY = H / baseH;
+                const W = canvas.clientWidth, H = canvas.clientHeight;
 
                 (state.items || []).forEach(it => {
                     const img = document.createElement('img');
                     if (it.src) img.src = it.src;
-                    // 👇 캡처 좌표 기준으로 비율 보정
-                    img.style.left = (it.x * scaleX) + 'px';
-                    img.style.top = (it.y * scaleY) + 'px';
-                    img.style.width = (it.w * scaleX) + 'px';
-                    img.style.height = (it.h * scaleY) + 'px';
+                    img.style.left = (it.x * W) + 'px';
+                    img.style.top = (it.y * H) + 'px';
+                    img.style.width = (it.w * W) + 'px';
+                    img.style.height = (it.h * H) + 'px';
                     img.style.zIndex = String(it.z ?? 0);
                     const rot = it.rotate || 0;
                     const sc = it.scale || 1;
@@ -128,7 +121,7 @@
             // 저장
             document.getElementById('btnSave')?.addEventListener('click', async () => {
                 const canvasEl = document.getElementById('canvas');
-                const cvs = await html2canvas(canvasEl, { backgroundColor: null, scale: 2 });
+                const cvs = await html2canvas(canvasEl, { backgroundColor: null });
                 const url = cvs.toDataURL('image/png', 0.95);
                 const a = document.createElement('a');
                 a.href = url;
@@ -137,7 +130,6 @@
             });
         })();
     </script>
-
 </body>
 
 </html>
