@@ -4830,8 +4830,13 @@
             modal.style.display = 'block';
         }
 
+        const _qrModal = document.getElementById('qrModal');
         document.getElementById('qrClose')?.addEventListener('click', () => {
-            document.getElementById('qrModal').style.display = 'none';
+            if (_qrModal) _qrModal.style.display = 'none';
+            // ✅ 닫은 뒤, 현재 선택 날짜 기준으로 다시 활성화 판단
+            if (typeof setQREnabledFor === 'function' && typeof curDate === 'function') {
+                setQREnabledFor(curDate());
+            }
         });
 
     </script>
@@ -4939,8 +4944,6 @@
         })();
     </script>
 
-    <!-- QRCode 생성기 -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" crossorigin></script>
     <!-- LZ-String: 긴 상태를 URL 해시에 압축 -->
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js" crossorigin></script>
     <script>
@@ -4993,27 +4996,24 @@
     <script>
         /* === QR 버튼 상태 관리 ===
            - 저장본이 있으면(하늘색 꽃아이콘) 활성
-           - 없으면(회색/없음) 완전 투명 + 클릭 불가
+           - 없으면(회색/없음) 비활성(aria-disabled="true")
         */
         (function () {
             const btnQR = document.getElementById('btnQR');
 
             function hasSavedCapture(dateStr) {
-                // day.html의 DataBridge.readAny 결과에서 capture 존재 여부로 판단
                 try {
                     if (!dateStr) return false;
                     const data = (typeof DataBridge?.readAny === 'function')
                         ? DataBridge.readAny(dateStr) : null;
                     return !!(data && typeof data.capture === 'string' && data.capture.startsWith('data:image'));
-                } catch {
-                    return false;
-                }
+                } catch { return false; }
             }
 
             function setQRDisabled(disabled) {
                 if (!btnQR) return;
                 if (disabled) {
-                    btnQR.setAttribute('aria-disabled', 'true');   // 투명 + 클릭불가 (CSS에서 처리)
+                    btnQR.setAttribute('aria-disabled', 'true');   // CSS에서 투명/클릭불가 처리
                     btnQR.title = '먼저 "캡처 저장"을 해주세요';
                 } else {
                     btnQR.removeAttribute('aria-disabled');
@@ -5027,41 +5027,35 @@
                 setQRDisabled(!ok);
             }
 
-            // 날짜 배지의 현재값으로 갱신
+            // 현재 배지 날짜로 1회 갱신
             function refreshQRByBadge() {
                 const dateStr = (document.getElementById('dateBadge')?.textContent || '').trim();
                 updateQRAvailability(dateStr);
             }
 
-            // 최초 진입/렌더 이후 1회
+            // 최초 로드
             document.addEventListener('DOMContentLoaded', refreshQRByBadge);
 
-            // 달력에서 날짜를 바꿀 때마다 실행되도록 loadForDate를 래핑 (이미 정의되어 있음)
+            // 날짜 전환마다 동기화
             if (typeof window.loadForDate === 'function') {
                 const __old = window.loadForDate;
                 window.loadForDate = function (dateStr) {
                     const r = __old.apply(this, arguments);
-                    // 카드/에디터 갱신 뒤 QR 상태도 동기화
                     updateQRAvailability(dateStr);
                     return r;
                 };
             } else {
-                // 혹시 모를 상황 대비, 300ms 뒤 한번 더 체크
                 setTimeout(refreshQRByBadge, 300);
             }
 
-            // "캡처 저장" 성공 직후에도 즉시 활성화되도록 훅 연결
-            // 👉 네가 캡처 저장을 끝내는 곳에서 아래 커스텀 이벤트를 dispatch 해줘.
-            //    document.dispatchEvent(new CustomEvent('moodiary:capture-saved', { detail: { dateStr } }));
+            // “캡처 저장 완료” 즉시 활성화 (모달 닫고 새로 눌러도 계속 됨)
             document.addEventListener('moodiary:capture-saved', (e) => {
                 const dateStr = (e?.detail?.dateStr) ||
                     (document.getElementById('dateBadge')?.textContent || '').trim();
                 updateQRAvailability(dateStr);
-                // 달력 셀의 꽃아이콘 색도 갱신되도록, 필요하면 너의 buildCalendar를 재호출해도 좋아.
-                // (이미 buildCalendar가 capture 유무에 따라 .orange를 붙여줌)
             });
 
-            // 안전장치: QR 버튼 클릭 시도에 대해, 비활성이라면 즉시 중단
+            // 비활성일 때 클릭 차단(안전장치)
             btnQR?.addEventListener('click', (ev) => {
                 if (btnQR.getAttribute('aria-disabled') === 'true') {
                     ev.preventDefault();
@@ -5070,10 +5064,8 @@
                 }
             }, true);
         })();
-        // (캡처 저장 성공 직후) dateStr는 저장한 날짜 문자열
-        document.dispatchEvent(new CustomEvent('moodiary:capture-saved', { detail: { dateStr } }));
-
     </script>
+
     <script>
         (function () {
             const btnCap = document.getElementById('btnCapture');
@@ -5166,72 +5158,124 @@
 
     </script>
     <script>
+        /** ============ 유틸 ============ **/
+        function dataURLToBlob(dataUrl) {
+            const arr = dataUrl.split(','), mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]); let n = bstr.length; const u8 = new Uint8Array(n);
+            while (n--) u8[n] = bstr.charCodeAt(n);
+            return new Blob([u8], { type: mime });
+        }
+
+        // 오늘 선택 날짜의 저장본만 읽기(없으면 throw)
+        async function captureGardenAsDataURL() {
+            const dateStr = (document.getElementById('dateBadge')?.textContent || '').trim();
+            if (!dateStr) throw new Error('오늘 날짜를 찾을 수 없어요.');
+            try {
+                if (typeof DataBridge?.readAny === 'function') {
+                    const raw = DataBridge.readAny(dateStr);
+                    if (raw?.capture?.startsWith('data:image')) return raw.capture;
+                }
+            } catch { }
+            const lsKey = `garden_capture_${dateStr}`;
+            const saved = localStorage.getItem(lsKey);
+            if (saved?.startsWith('data:image')) return saved;
+            throw new Error('저장된 캡처가 없어요. 먼저 "정원 캡처 저장"을 눌러 주세요.');
+        }
+
+        // 아무 날짜 것이나 하나라도 있으면 true (QR 버튼 글로벌 활성 조건)
+        function hasAnySavedCapture() {
+            try {
+                const map = JSON.parse(localStorage.getItem('photos_by_date') || '{}');
+                const anyMap = Object.values(map).some(a => Array.isArray(a) && a.length);
+                const anySingle = Object.keys(localStorage).some(k => k.startsWith('garden_capture_'));
+                return anyMap || anySingle;
+            } catch { return false; }
+        }
+
+        async function uploadTempImage(dataUrl) {
+            const blob = dataURLToBlob(dataUrl);
+            const fd = new FormData(); fd.append('file', blob, `moodiary_${Date.now()}.jpg`);
+            const res = await fetch('https://file.io/?expires=1w', { method: 'POST', body: fd });
+            const j = await res.json();
+            if (!res.ok || !j?.success || !j?.link) throw new Error(j?.error || '업로드 실패');
+            return j.link;
+        }
+
+        function showQR(link) {
+            const modal = document.getElementById('qrModal');
+            const wrap = document.getElementById('qrCanvasWrap');
+            const input = document.getElementById('qrLink');
+            if (!modal || !wrap || !input) return;
+            wrap.innerHTML = ''; input.value = link;
+            QRCode.toCanvas(link, { width: 300 }, (err, cvs) => {
+                if (err) { alert('QR 생성 실패'); return; }
+                wrap.appendChild(cvs);
+            });
+            modal.style.display = 'block';
+        }
+
+        /* === QR 버튼 상태 관리 ===
+   - 저장본이 있으면(하늘색 꽃아이콘) 활성
+   - 없으면(회색/없음) 비활성(aria-disabled="true")
+*/
         (function () {
             const btnQR = document.getElementById('btnQR');
-            const btnCap = document.getElementById('btnCapture');
 
-            function hasAnySavedCapture() {
+            function hasSavedCapture(dateStr) {
                 try {
-                    const map = JSON.parse(localStorage.getItem('photos_by_date') || '{}');
-                    const anyMap = Object.values(map).some(a => Array.isArray(a) && a.length);
-                    const anySingle = Object.keys(localStorage).some(k => k.startsWith('garden_capture_'));
-                    return anyMap || anySingle;
-                } catch { return false; }
-            }
-            function refreshButtons() {
-                const disabled = !hasAnySavedCapture();
-                [btnQR, btnCap].forEach(b => {
-                    if (!b) return;
-                    b.removeAttribute('disabled'); // 네이티브 disabled 금지
-                    if (disabled) b.setAttribute('aria-disabled', 'true');
-                    else b.removeAttribute('aria-disabled');
-                });
-            }
-
-            document.addEventListener('DOMContentLoaded', refreshButtons);
-            document.addEventListener('moodiary:capture-saved', refreshButtons);
-
-            if (typeof window.loadForDate === 'function') {
-                const _old = window.loadForDate;
-                window.loadForDate = function (d) { const r = _old.apply(this, arguments); refreshButtons(); return r; };
-            }
-        })();
-    </script>
-    <script>
-        (function () {
-            const btnQR = document.getElementById('btnQR');
-            const btnCap = document.getElementById('btnCapture');
-
-            // 저장본이 “하나라도” 있으면 true
-            function hasAnySavedCapture() {
-                try {
-                    const map = JSON.parse(localStorage.getItem('photos_by_date') || '{}');
-                    const anyMap = Object.values(map).some(a => Array.isArray(a) && a.length);
-                    const anySingle = Object.keys(localStorage).some(k => k.startsWith('garden_capture_'));
-                    return anyMap || anySingle;
+                    if (!dateStr) return false;
+                    const data = (typeof DataBridge?.readAny === 'function')
+                        ? DataBridge.readAny(dateStr) : null;
+                    return !!(data && typeof data.capture === 'string' && data.capture.startsWith('data:image'));
                 } catch { return false; }
             }
 
-            function refreshQRButton() {
-                const enabled = hasAnySavedCapture();
+            function setQRDisabled(disabled) {
                 if (!btnQR) return;
-                btnQR.removeAttribute('disabled'); // 네이티브 disabled 금지
-                if (enabled) btnQR.removeAttribute('aria-disabled');
-                else btnQR.setAttribute('aria-disabled', 'true');
+                if (disabled) {
+                    btnQR.setAttribute('aria-disabled', 'true');   // CSS에서 투명/클릭불가 처리
+                    btnQR.title = '먼저 "캡처 저장"을 해주세요';
+                } else {
+                    btnQR.removeAttribute('aria-disabled');
+                    btnQR.removeAttribute('title');
+                }
             }
 
-            // 캡처 저장 버튼 규칙은 기존 로직 유지(오늘 기록+정원 여부로 on/off) :contentReference[oaicite:8]{index=8}
-            // 단, QR은 “저장본 존재 여부”만 본다.
-            document.addEventListener('DOMContentLoaded', refreshQRButton);
-            document.addEventListener('moodiary:capture-saved', refreshQRButton); // 저장 직후 즉시 활성화 :contentReference[oaicite:9]{index=9}
+            // 선택 날짜 기준으로 상태 반영
+            function updateQRAvailability(dateStr) {
+                const ok = hasSavedCapture(dateStr);
+                setQRDisabled(!ok);
+            }
 
-            // 날짜 전환 시에도 다시 판단
+            // 현재 배지 날짜로 1회 갱신
+            function refreshQRByBadge() {
+                const dateStr = (document.getElementById('dateBadge')?.textContent || '').trim();
+                updateQRAvailability(dateStr);
+            }
+
+            // 최초 로드
+            document.addEventListener('DOMContentLoaded', refreshQRByBadge);
+
+            // 날짜 전환마다 동기화
             if (typeof window.loadForDate === 'function') {
-                const _old = window.loadForDate;
-                window.loadForDate = function (d) { const r = _old.apply(this, arguments); refreshQRButton(); return r; };
+                const __old = window.loadForDate;
+                window.loadForDate = function (dateStr) {
+                    const r = __old.apply(this, arguments);
+                    updateQRAvailability(dateStr);
+                    return r;
+                };
+            } else {
+                setTimeout(refreshQRByBadge, 300);
             }
 
-            // 안전장치: 비활성 상태 클릭 차단(캡처저장 버튼과 동일 패턴) :contentReference[oaicite:10]{index=10}
+            // “캡처 저장 완료” 즉시 활성화 (모달 닫고 새로 눌러도 계속 됨)
+            document.addEventListener('moodiary:capture-saved', (e) => {
+                const dateStr = (e?.detail?.dateStr) ||
+                    (document.getElementById('dateBadge')?.textContent || '').trim();
+                updateQRAvailability(dateStr);
+            });
+
+            // 비활성일 때 클릭 차단(안전장치)
             btnQR?.addEventListener('click', (ev) => {
                 if (btnQR.getAttribute('aria-disabled') === 'true') {
                     ev.preventDefault();
@@ -5240,182 +5284,96 @@
                 }
             }, true);
         })();
-
-        document.dispatchEvent(new CustomEvent('moodiary:capture-saved', { detail: { dateStr } }));
-        document.getElementById('btnQR')?.removeAttribute('aria-disabled');
-
     </script>
     <script>
         (function () {
+            const btnClear = document.getElementById('btnClear');
+            const btnCapture = document.getElementById('btnCapture');
             const btnQR = document.getElementById('btnQR');
-            const btnCap = document.getElementById('btnCapture');
             const canvas = document.getElementById('canvas');
 
-            if (!btnQR || !btnCap || !canvas) return;
+            if (!btnClear || !canvas) return;
 
-            // 날짜 문자열
-            const curDate = () => (document.getElementById('dateBadge')?.textContent || '').trim();
+            // 한 줄 함수: 두 버튼 동시에 비활성
+            function disableActions() {
+                btnCapture?.setAttribute('aria-disabled', 'true');
+                btnQR?.setAttribute('aria-disabled', 'true');
+            }
 
-            // “오늘의 기록” 유무(한 줄/꽃/소품 중 1개라도)
-            function hasTodayRecord(dateStr) {
+            // 선택된 날짜 문자열
+            function currentDateStr() {
+                return (document.getElementById('dateBadge')?.textContent || '').trim();
+            }
+
+            // 이 날짜의 캡처 흔적 비우기
+            function purgeCapture(dateStr) {
+                if (!dateStr) return;
+                // 단일 키
+                localStorage.removeItem(`garden_capture_${dateStr}`);
+                // 배열/맵 형태로 저장해 둔 경우도 정리
                 try {
-                    const d = (typeof DataBridge?.readAny === 'function') ? DataBridge.readAny(dateStr) : null;
-                    const hasQuote = !!(d && d.quote && String(d.quote).trim());
-                    const hasFlower = !!(d && d.flower);
-                    const hasProps = !!(d && Array.isArray(d.props) && d.props.length);
-                    return hasQuote || hasFlower || hasProps;
-                } catch { return false; }
+                    const map = JSON.parse(localStorage.getItem('photos_by_date') || '{}');
+                    if (map[dateStr]) delete map[dateStr];
+                    localStorage.setItem('photos_by_date', JSON.stringify(map));
+                } catch { }
             }
 
-            // “정원을 꾸몄는지”(배경/배치 이미지 유무)
-            function hasGardenEdited() {
-                const bg = getComputedStyle(canvas).backgroundImage;
-                const hasBg = bg && bg !== 'none';
-                const hasImgs = canvas.querySelectorAll('img').length > 0;
-                return hasBg || hasImgs;
+            // 달력의 현재 셀 꽃색(하늘색 → 회색) 동기화
+            function dimCalendarFlower() {
+                const calGrid = document.getElementById('calGrid');
+                const selCell = calGrid?.querySelector('.cell.sel');
+                const fl = selCell?.querySelector('.mark-flower');
+                if (fl) fl.classList.remove('orange');
             }
 
-            // “선택 날짜의 캡처저장이 실제로 존재하는가”
-            function hasSavedCaptureFor(dateStr) {
-                try {
-                    const d = (typeof DataBridge?.readAny === 'function') ? DataBridge.readAny(dateStr) : null;
-                    return !!(d && typeof d.capture === 'string' && d.capture.startsWith('data:image'));
-                } catch { return false; }
+            // QR 모달이 열려있으면 닫고, 이전 QR 캔버스도 즉시 제거
+            function closeQRModal() {
+                const modal = document.getElementById('qrModal');
+                const wrap = document.getElementById('qrCanvasWrap');
+                if (wrap) wrap.innerHTML = '';
+                if (modal) modal.style.display = 'none';
             }
 
-            function setDisabled(el, disabled) {
-                if (!el) return;
-                el.removeAttribute('disabled');                 // 네이티브 disabled 금지
-                if (disabled) el.setAttribute('aria-disabled', 'true');
-                else el.removeAttribute('aria-disabled');
-            }
-
-            function refreshButtons() {
-                const dateStr = curDate();
-                const canCaptureSave = !!dateStr && hasTodayRecord(dateStr) && hasGardenEdited(); // 캡처저장 가능 조건
-                const hasCaptureThis = !!dateStr && hasSavedCaptureFor(dateStr);                  // QR 가능 조건(엄격: 선택 날짜만)
-
-                // 캡처저장 버튼: “기록 + 정원” 둘 다 갖춰야 활성
-                setDisabled(btnCap, !canCaptureSave);
-
-                // QR 버튼: “선택 날짜의 저장된 캡처 존재”일 때만 활성
-                setDisabled(btnQR, !hasCaptureThis);
-            }
-
-            // 비활성 상태에서 클릭 차단(안내는 필요하면 추가)
-            [btnQR, btnCap].forEach(b => {
-                b.addEventListener('click', (e) => {
-                    if (b.getAttribute('aria-disabled') === 'true') { e.preventDefault(); e.stopPropagation(); return false; }
-                }, true);
-            });
-
-            // 최초/날짜 전환/편집 변화/저장 직후에 동기화
-            document.addEventListener('DOMContentLoaded', refreshButtons);
-            if (typeof window.loadForDate === 'function') {
-                const _old = window.loadForDate;
-                window.loadForDate = function (d) { const r = _old.apply(this, arguments); refreshButtons(); return r; };
-            }
-            const mo = new MutationObserver(refreshButtons);
-            mo.observe(canvas, { childList: true, attributes: true, attributeFilter: ['style'] });
-
-            // 캡처 저장 성공 직후 즉시 켜지게
-            document.addEventListener('moodiary:capture-saved', refreshButtons);
-        })();
-
-        // 캡처 저장 성공 직후(로컬 저장 완료 다음 줄)
-        document.dispatchEvent(new CustomEvent('moodiary:capture-saved', { detail: { dateStr } }));
-
-    </script>
-    <script>
-        function hasSavedCaptureFor(dateStr) {
-            try {
-                const d = (typeof DataBridge?.readAny === 'function') ? DataBridge.readAny(dateStr) : null;
-                return !!(d && typeof d.capture === 'string' && d.capture.startsWith('data:image'));
-            } catch { return false; }
-        }
-
-        function setQREnabledFor(dateStr) {
-            const btnQR = document.getElementById('btnQR');
-            if (!btnQR) return;
-            const enabled = !!dateStr && hasSavedCaptureFor(dateStr);
-            btnQR.removeAttribute('disabled');                 // native disabled 제거(스타일 간섭 방지)
-            if (enabled) btnQR.removeAttribute('aria-disabled');
-            else btnQR.setAttribute('aria-disabled', 'true');
-        }
-    </script>
-    <script>
-        (function setupQRAlwaysActive() {
-            const btnQR = document.getElementById('btnQR');
-            const modal = document.getElementById('qrModal');
-            const qrWrap = document.getElementById('qrCanvasWrap');
-            const qrLink = document.getElementById('qrLink');
-            const closeBtn = document.getElementById('qrClose');
-
-            if (!btnQR || !qrWrap) return;
-
-            // ✅ 모달 닫기
-            closeBtn?.addEventListener('click', () => {
-                modal.style.display = 'none';
-            });
-
-            // ✅ QR 생성 함수
-            async function generateQR() {
-                if (btnQR.getAttribute('aria-disabled') === 'true') return; // 비활성화면 중단
-
-                qrWrap.innerHTML = ''; // 이전 QR 제거
-
-                // 1) 현재 날짜 구하기
-                const dateStr = (document.getElementById('dateBadge')?.textContent || '').trim();
-
-                // 2) localStorage에서 이미지 찾기
-                const capture = localStorage.getItem(`garden_capture_${dateStr}`);
-                if (!capture || !capture.startsWith('data:image')) {
-                    alert('먼저 "캡처 저장"을 눌러 정원을 저장해주세요.');
-                    return;
-                }
-
-                try {
-                    // file.io 업로드 (기존 uploadTempImage 함수가 있으면 사용)
-                    let qrUrl = '';
-                    if (typeof uploadTempImage === 'function') {
-                        qrUrl = await uploadTempImage(capture);
-                    } else {
-                        // 임시: 직접 view.html 링크로 연결
-                        qrUrl = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}view.html?date=${encodeURIComponent(dateStr)}&_=${Date.now()}`;
-                    }
-
-                    // QR코드 생성
-                    new QRCode(qrWrap, {
-                        text: qrUrl,
-                        width: 256,
-                        height: 256,
-                        correctLevel: QRCode.CorrectLevel.M
-                    });
-
-                    // 링크 표시
-                    qrLink.value = qrUrl;
-                    modal.style.display = 'block'; // 모달 열기
-                } catch (e) {
-                    console.error(e);
-                    alert('QR 생성 중 오류가 발생했습니다.');
+            // (이미 파일에 있는) 날짜별 QR 가능 여부 재계산 훅
+            function refreshQR(dateStr) {
+                if (typeof window.setQREnabledFor === 'function') {
+                    window.setQREnabledFor(dateStr); // 내부에서 capture 유무 보고 off 처리됨
+                } else {
+                    // 안전장치: 직접 비활성화 유지
+                    disableActions();
                 }
             }
 
-            // ✅ 클릭할 때마다 새로 QR 생성
-            btnQR.addEventListener('click', generateQR);
+            // ✅ 비우기: “동시에” 처리
+            btnClear.addEventListener('click', () => {
+                const dateStr = currentDateStr();
 
-            // ✅ 새로고침 시에도 QR 버튼 다시 활성화 복원
-            window.addEventListener('DOMContentLoaded', () => {
-                const dateStr = (document.getElementById('dateBadge')?.textContent || '').trim();
-                const hasCapture = !!localStorage.getItem(`garden_capture_${dateStr}`);
-                if (hasCapture) {
-                    btnQR.setAttribute('aria-disabled', 'false');
-                    btnQR.style.opacity = '1';
-                    btnQR.style.pointerEvents = 'auto';
-                }
+                // 0) 먼저 두 버튼을 같은 프레임에서 즉시 비활성(동시성 보장)
+                disableActions();
+
+                // 1) QR 모달도 닫고, 이전 QR 캔버스 제거
+                closeQRModal();
+
+                // 2) 캔버스 오브젝트/배경을 싹 비우기(동기 처리)
+                canvas.innerHTML = '';
+                canvas.style.backgroundImage = 'none';
+
+                // 3) 이 날짜의 캡처 데이터 완전 삭제
+                purgeCapture(dateStr);
+
+                // 4) 달력 꽃아이콘을 회색으로(하늘색 해제)
+                dimCalendarFlower();
+
+                // 5) 전역 상태 갱신 이벤트(의존 코드들이 듣고 버튼 상태/캘린더 갱신)
+                document.dispatchEvent(new CustomEvent('moodiary:capture-cleared', { detail: { dateStr } }));
+                document.dispatchEvent(new CustomEvent('moodiary:capture-saved', { detail: { dateStr } })); // 일부 훅 호환
+
+                // 6) QR 사용 가능 여부 재평가(강제 비활성 유지)
+                refreshQR(dateStr);
             });
         })();
     </script>
+
 
 </body>
 
