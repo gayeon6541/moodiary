@@ -44,9 +44,7 @@
             top: 0;
             z-index: 50;
             height: var(--header-h);
-            background: rgba(255, 255, 255, .9);
             backdrop-filter: blur(6px);
-            border-bottom: 1px solid #eaeaea
         }
 
         .wrap {
@@ -266,31 +264,26 @@
             font-size: 13px
         }
 
-        .desc {
-            margin-top: 10px;
-            color: #333;
-            font-size: 16px;
-            line-height: 1.75
-        }
-
         .meta {
-            margin-top: 22px;
+            margin-top: 28px;
             display: grid;
-            grid-template-columns: repeat(2, minmax(200px, 1fr));
-            gap: 14px
+            grid-template-columns: repeat(2, minmax(220px, 1fr));
+            gap: 18px 22px;
         }
 
         .meta dt {
-            font-weight: 700
+            font-weight: 700;
         }
 
         .meta dd {
             margin: 0;
-            color: #444
+            color: #444;
+            line-height: 1.6;
         }
 
+
         .nav-rows {
-            margin-top: 70px;
+            margin-top: 120px;
             /* 기존 28px → 40px, 살짝 위 여백 */
             display: flex;
             justify-content: flex-end;
@@ -524,7 +517,7 @@
 
         .session.right .hero-detail {
             width: 100%;
-            max-width: min(540px, 44vw);
+            max-width: min(570px, 50vw);
             text-align: left;
         }
 
@@ -580,10 +573,85 @@
         .crumbs {
             display: none !important;
         }
+
+        .title-row {
+            display: flex;
+            align-items: baseline;
+            /* 베이스라인 맞춤 */
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .title-ko {
+            font-family: Pretendard, system-ui, -apple-system, BlinkMacSystemFont, Inter, sans-serif;
+            font-size: 15px;
+            color: #666;
+            font-weight: 400;
+            line-height: 1;
+            /* 제목 높이에 깔끔하게 붙도록 */
+        }
+
+        .desc {
+            margin-bottom: 40px;
+            /* 🔸 설명과 메타 사이에 살짝 여유 */
+        }
+
+        /* ✨ 하얀 반딧불이 효과 */
+        .firefly {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.8;
+            box-shadow: 0 0 8px 4px rgba(255, 255, 255, 0.6);
+            animation: fly 10s linear infinite, blink 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes fly {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            25% {
+                transform: translate(50px, -80px) scale(1.2);
+            }
+
+            50% {
+                transform: translate(-60px, -30px) scale(0.9);
+            }
+
+            75% {
+                transform: translate(80px, 60px) scale(1.1);
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 0.3;
+                box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.4);
+            }
+
+            50% {
+                opacity: 1;
+                box-shadow: 0 0 10px 6px rgba(255, 255, 255, 0.9);
+            }
+
+            100% {
+                opacity: 0.2;
+                box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.4);
+            }
+        }
     </style>
 </head>
 
 <body>
+    <div class="background-decor" id="backgroundDecor"></div>
+
     <!-- Header -->
     <header class="site">
         <div class="wrap">
@@ -623,20 +691,29 @@
             <!-- RIGHT: 설명 -->
             <section class="session right">
                 <div class="hero-detail">
-                    <h1 class="title" id="f-title">FLOWER</h1>
-                    <p class="subtitle" id="f-sub">—</p>
-
-                    <div class="chips" id="f-chips"></div>
+                    <div class="title-row">
+                        <h1 class="title" id="f-title">FLOWER</h1>
+                        <span class="title-ko" id="f-title-ko"></span>
+                    </div>
+                    <!-- 🔧 여기 한 줄 추가 -->
                     <div class="desc" id="f-desc"></div>
 
                     <dl class="meta">
                         <div>
-                            <dt>영문명</dt>
-                            <dd id="f-en">—</dd>
+                            <dt>꽃말</dt>
+                            <dd id="f-meaning">—</dd>
                         </div>
                         <div>
-                            <dt>국문명</dt>
-                            <dd id="f-ko">—</dd>
+                            <dt>계절 / 개화시기</dt>
+                            <dd id="f-season">—</dd>
+                        </div>
+                        <div>
+                            <dt>색상 상징</dt>
+                            <dd id="f-color">—</dd>
+                        </div>
+                        <div>
+                            <dt>향기 / 질감</dt>
+                            <dd id="f-scent">—</dd>
                         </div>
                         <div>
                             <dt>상징</dt>
@@ -647,6 +724,7 @@
                             <dd id="f-emote">—</dd>
                         </div>
                     </dl>
+
 
                     <div class="nav-rows">
                         <a class="btn" href="flower.html">← 목록으로</a>
@@ -791,76 +869,194 @@
                 }
             });
         })();
-        
+
         /* 이미지 경로는 flower 폴더 사용 */
+        /* FLOWERS: 아래 전체로 교체 */
         const FLOWERS = [
             {
-                slug: 'hydrangea', en: 'HYDRANGEA', ko: '수국', emotions: '감사 · 진심 · 변화', symbolism: '감사, 진심, 변덕', img: 'img/flowers/hydrangea.svg',
-                desc: '작은 꽃송이들이 모여 둥글게 피는 수국은 ‘감사’와 ‘진심’을 상징해요. 기쁨이 쌓여 더 큰 행복이 되고, 주변과 나누며 깊은 감정을 표현합니다.'
+                slug: 'hydrangea',
+                en: 'HYDRANGEA',
+                ko: '수국',
+                meaning: '진심, 감사, 변화의 수용',
+                season: '초여름 (6~7월)',
+                color: '파랑: 진심 · 차분 / 보라: 신비',
+                scent: '가벼운 풀향',
+                emotions: '감사 · 진심 · 변화',
+                symbolism: '감사, 진심, 변덕',
+                img: 'img/flowers/hydrangea.svg',
+                desc: '작은 꽃송이들이 모여 둥글게 피는 수국은 <br>‘감사’와 ‘진심’을 상징해요. 기쁨이 쌓여 더 큰 행복이 되고, <br>주변과 나누며 깊은 감정을 표현합니다.'
             },
             {
-                slug: 'babybreath', en: "BABY'S BREATH", ko: '안개꽃', emotions: '순수 · 응원 · 위로', symbolism: '순수, 영원, 배려', img: 'img/flowers/babybreath.svg',
-                desc: '가는 줄기 위에 촘촘히 피어난 안개꽃은 ‘순수한 사랑’과 ‘변치 않는 마음’을 상징해요. 설렘의 순간을 기대감으로 이어지도록 도와줍니다.'
+                slug: 'babybreath',
+                en: "BABY'S BREATH",
+                ko: '안개꽃',
+                meaning: '순수한 사랑, 영원성',
+                season: '봄~여름 (4~7월)',
+                color: '흰색: 순수 · 영원 / 연분홍: 애정',
+                scent: '아주 은은한 달콤함',
+                emotions: '순수 · 응원 · 위로',
+                symbolism: '순수, 영원, 배려',
+                img: 'img/flowers/babybreath.svg',
+                desc: '가는 줄기 위에 촘촘히 피어난 안개꽃은<br> ‘순수한 사랑’과 ‘변치 않는 마음’을 상징해요.<br>설렘의 순간을 기대감으로 이어지도록 도와줍니다.'
             },
             {
-                slug: 'lavender', en: 'LAVENDER', ko: '라벤더', emotions: '휴식 · 안정 · 집중', symbolism: '평온, 헌신', img: 'img/flowers/lavender.svg',
-                desc: '라벤더는 은은한 향기와 보랏빛으로 ‘평온’과 ‘정서적 안정’을 의미해요. 마음의 긴장을 풀어주고 차분한 상태를 유지하게 해줍니다.'
+                slug: 'lavender',
+                en: 'LAVENDER',
+                ko: '라벤더',
+                meaning: '평온, 헌신, 힐링',
+                season: '초여름 (6~8월)',
+                color: '보라: 안정 · 치유 · 영적 균형',
+                scent: '허브향',
+                emotions: '휴식 · 안정 · 집중',
+                symbolism: '평온, 헌신',
+                img: 'img/flowers/lavender.svg',
+                desc: '라벤더는 은은한 향기와 보랏빛으로 ‘평온’과<br> ‘정서적 안정’을 의미해요. 마음의 긴장을 풀어주고 <br>차분한 상태를 유지하게 해줍니다.'
             },
             {
-                slug: 'freesia', en: 'FREESIA', ko: '프리지아', emotions: '설렘 · 시작 · 고마움', symbolism: '순수, 신뢰', img: 'img/flowers/freesia.svg',
-                desc: '부드럽고 따뜻한 색감의 프리지아는 ‘위로’와 ‘새 출발’을 상징해요. 상실감과 슬픔 속에서도 다시 걸어 나갈 수 있는 희망을 전해줍니다.'
+                slug: 'freesia',
+                en: 'FREESIA',
+                ko: '프리지아',
+                meaning: '새 출발, 순수한 우정',
+                season: '봄 (3~4월)',
+                color: '노랑: 희망 · 위로 / 흰색: 순수',
+                scent: '달콤하고 산뜻한 향',
+                emotions: '설렘 · 시작 · 고마움',
+                symbolism: '순수, 신뢰',
+                img: 'img/flowers/freesia.svg',
+                desc: '부드럽고 따뜻한 색감의 프리지아는 <br>‘위로’와 ‘새 출발’을 상징해요. 상실감과 슬픔 속에서도 <br>다시 걸어 나갈 수 있는 희망을 전해줍니다.'
             },
             {
-                slug: 'daisy', en: 'DAISY', ko: '데이지', emotions: '기쁨 · 솔직함 · 맑음', symbolism: '순진무구, 희망', img: 'img/flowers/daisy.svg',
-                desc: '데이지는 단순하고 밝은 형태로 ‘순수한 우정’과 ‘희망’을 뜻해요. 외로운 마음을 포근하게 감싸며, 사람과 다시 연결되는 가능성을 줍니다.'
+                slug: 'daisy',
+                en: 'DAISY',
+                ko: '데이지',
+                meaning: '희망, 솔직함, 순수한 우정',
+                season: '봄~초여름 (4~6월)',
+                color: '흰색: 순수 / 노랑 중심부: 활기',
+                scent: '가볍고 깨끗한 풀내음',
+                emotions: '기쁨 · 솔직함 · 맑음',
+                symbolism: '순진무구, 희망',
+                img: 'img/flowers/daisy.svg',
+                desc: '데이지는 단순하고 밝은 형태로 ‘순수한 우정’과 ‘희망’을 뜻해요.<br>외로운 마음을 포근하게 감싸며,<br>사람과 다시 연결되는 가능성을 줍니다.'
             },
             {
-                slug: 'white-lily', en: 'WHITE LILY', ko: '흰 백합', emotions: '존중 · 숭고함 · 위엄', symbolism: '순결, 고결', img: 'img/flowers/white-lily.svg',
-                desc: '흰 백합은 ‘순수함’과 ‘정화’를 상징해요. 격해진 감정을 조용히 가라앉히고, 내면의 균형을 되찾을 수 있도록 도와줍니다.'
+                slug: 'white-lily',
+                en: 'WHITE LILY',
+                ko: '흰 백합',
+                meaning: '순결, 존엄',
+                season: '여름 (6~8월)',
+                color: '흰색: 순수 · 고결',
+                scent: '선명하고 깊은 플로럴 향',
+                emotions: '존중 · 숭고함 · 위엄',
+                symbolism: '순결, 고결',
+                img: 'img/flowers/white-lily.svg',
+                desc: '흰 백합은 ‘순수함’과 ‘정화’를 상징해요.<br>격해진 감정을 조용히 가라앉히고,<br>내면의 균형을 되찾을 수 있도록 도와줍니다.'
             },
             {
-                slug: 'lilac', en: 'LILAC', ko: '라일락', emotions: '그리움 · 봄기운 · 포근함', symbolism: '우정, 추억', img: 'img/flowers/lilac.svg',
-                desc: '라일락은 ‘휴식’과 ‘영혼의 안정’을 의미하며, 향기와 색이 지친 몸과 마음을 편안하게 감싸줍니다. 회복과 쉼을 상징하는 꽃이에요.'
+                slug: 'lilac',
+                en: 'LILAC',
+                ko: '라일락',
+                meaning: '추억, 우정, 첫사랑',
+                season: '봄 (4~5월)',
+                color: '연보라: 포근함 · 향수 / 흰색: 순수',
+                scent: '달콤하고 향긋한 플로럴',
+                emotions: '그리움 · 봄기운 · 포근함',
+                symbolism: '우정, 추억',
+                img: 'img/flowers/lilac.svg',
+                desc: '라일락은 ‘휴식’과 ‘영혼의 안정’을 의미하며, <br>향기와 색이 지친 몸과 마음을 편안하게 감싸줍니다.<br>회복과 쉼을 상징하는 꽃이에요.'
             },
             {
-                slug: 'white-tulip', en: 'WHITE TULIP', ko: '흰 튤립', emotions: '응원 · 담백함 · 다짐', symbolism: '순수, 용서', img: 'img/flowers/white-tulip.svg',
-                desc: '하얀 튤립은 ‘용기’, ‘새로운 시작’을 상징해요. 불안한 감정 속에서도 부드럽게 위로해주며, 앞으로 나아갈 수 있는 힘을 북돋아줍니다.'
+                slug: 'white-tulip',
+                en: 'WHITE TULIP',
+                ko: '흰 튤립',
+                meaning: '순수한 용기, 사려 깊음',
+                season: '봄 (3~4월)',
+                color: '흰색: 순수 · 용서 / 연노랑: 희망',
+                scent: '은은하고 상쾌',
+                emotions: '응원 · 담백함 · 다짐',
+                symbolism: '순수, 용서',
+                img: 'img/flowers/white-tulip.svg',
+                desc: '하얀 튤립은 ‘용기’, ‘새로운 시작’을 상징해요.<br>불안한 감정 속에서도 부드럽게 위로해주며, 앞으로 나아갈 수 있는<br> 힘을 북돋아줍니다.'
             },
             {
-                slug: 'sunflower', en: 'SUNFLOWER', ko: '해바라기', emotions: '행복 · 충실 · 에너지', symbolism: '동경, 충성', img: 'img/flowers/sunflower.svg',
-                desc: '태양을 향해 피어나는 해바라기는 ‘긍정’, ‘존경’, ‘감사’를 의미해요. 밝고 활기찬 감정에 에너지를 더하고, 감사한 마음을 전하는 데 적합합니다.'
+                slug: 'sunflower',
+                en: 'SUNFLOWER',
+                ko: '해바라기',
+                meaning: '존경, 충성, 밝음',
+                season: '한여름 (7~8월)',
+                color: '노랑: 에너지 · 희망',
+                scent: '해바라기씨의 고소함이 살짝',
+                emotions: '행복 · 충실 · 에너지',
+                symbolism: '동경, 충성',
+                img: 'img/flowers/sunflower.svg',
+                desc: '태양을 향해 피어나는 해바라기는 <br>‘긍정’, ‘존경’, ‘감사’를 의미해요. 밝고 활기찬 감정에 <br>에너지를 더하고, 감사한 마음을 전하는 데 적합합니다.'
             },
             {
-                slug: 'peony', en: 'PEONY', ko: '작약', emotions: '풍요 · 축복 · 따뜻함', symbolism: '부, 번영', img: 'img/flowers/peony.svg',
-                desc: '풍성하고 화려한 작약은 ‘행복한 삶’을 상징해요. 과거의 후회를 따뜻하게 감싸며, 스스로를 받아들이고 성장할 수 있는 용기를 줍니다.'
+                slug: 'peony',
+                en: 'PEONY',
+                ko: '작약',
+                meaning: '풍요, 사랑의 축복, 화합',
+                season: '늦봄 (5~6월)',
+                color: '진분홍: 사랑 / 흰색: 순수',
+                scent: '달콤하고 부드러운 향',
+                emotions: '풍요 · 축복 · 따뜻함',
+                symbolism: '부, 번영',
+                img: 'img/flowers/peony.svg',
+                desc: '풍성하고 화려한 작약은 ‘행복한 삶’을 상징해요.<br>과거의 후회를 따뜻하게 감싸며,<br>스스로를 받아들이고 성장할 수 있는 용기를 줍니다.'
             },
             {
-                slug: 'forgetmenot', en: 'FORGET-ME-NOT', ko: '물망초', emotions: '기억 · 연결 · 소중함', symbolism: '진실한 사랑, 추억', img: 'img/flowers/forgetmenot.svg',
-                desc: '작고 파란 물망초는 ‘진실한 사랑’과 ‘기억’을 뜻해요. 떠난 것에 대한 아픔을 인정하고, 소중한 기억으로 간직할 수 있게 도와줍니다.'
+                slug: 'forgetmenot',
+                en: 'FORGET-ME-NOT',
+                ko: '물망초',
+                meaning: '진실한 사랑, 기억, 우정',
+                season: '봄 (4~6월)',
+                color: '파랑: 신뢰 · 기억',
+                scent: '아주 은근한 산뜻함',
+                emotions: '기억 · 연결 · 소중함',
+                symbolism: '진실한 사랑, 추억',
+                img: 'img/flowers/forgetmenot.svg',
+                desc: '작고 파란 물망초는 ‘진실한 사랑’과 ‘기억’을 뜻해요.<br>떠난 것에 대한 아픔을 인정하고,<br>소중한 기억으로 간직할 수 있게 도와줍니다.'
             },
             {
-                slug: 'lotus', en: 'LOTUS', ko: '연꽃', emotions: '회복 · 성찰 · 평온', symbolism: '청정, 재생', img: 'img/flowers/lotus.svg',
-                desc: '진흙 속에서도 맑고 깨끗하게 피는 연꽃은 ‘청정’, ‘극복’, ‘내면의 평화’를 상징해요. 복잡하고 흔들리는 마음을 정리하고 중심을 잡게 해줍니다.'
+                slug: 'lotus',
+                en: 'LOTUS',
+                ko: '연꽃',
+                meaning: '청정, 재생, 깨달음',
+                season: '한여름 (7~8월)',
+                color: '분홍: 자애 / 흰색: 청정',
+                scent: '맑고 청아한 수향',
+                emotions: '회복 · 성찰 · 평온',
+                symbolism: '청정, 재생',
+                img: 'img/flowers/lotus.svg',
+                desc: '진흙 속에서도 맑고 깨끗하게 피는 연꽃은<br>‘청정’, ‘극복’, ‘내면의 평화’를 상징해요.<br>복잡하고 흔들리는 마음을 정리하고 중심을 잡게 해줍니다.'
             }
         ];
+
 
         const order = FLOWERS.map(f => f.slug);
         function qs(key) { const p = new URLSearchParams(location.search); return p.get(key) || '' }
         function getData(slug) { return FLOWERS.find(f => f.slug === slug) || FLOWERS[0] }
 
         function render(d) {
-            const img = document.getElementById('f-img'); img.src = d.img; img.alt = d.en;
-            document.getElementById('f-title').textContent = d.en;
-            document.getElementById('f-sub').textContent = d.ko;
+            const img = document.getElementById('f-img');
+            img.src = d.img;
+            img.alt = d.en;
 
-            const chips = document.getElementById('f-chips'); chips.innerHTML = '';
-            d.emotions.split('·').map(s => s.trim()).forEach(t => {
-                const c = document.createElement('span'); c.className = 'chip'; c.textContent = t; chips.appendChild(c);
-            });
+            // ① 제목: "PEONY 작약" — 한 줄, 괄호 없음 (기존 .title 스타일 그대로 사용)
+            document.getElementById('f-title').textContent = d.en;     // 영문만 h1
+            const koEl = document.getElementById('f-title-ko');
+            if (koEl) koEl.textContent = d.ko;                         // 한글은 옆 span
 
-            document.getElementById('f-desc').textContent = d.desc;
-            document.getElementById('f-en').textContent = d.en;
-            document.getElementById('f-ko').textContent = d.ko;
+            // ② 부제목/키워드 제거: DOM에 남아 있을 경우 안전하게 숨기거나 제거
+            document.getElementById('f-sub')?.remove?.();
+            document.getElementById('f-chips')?.remove?.();
+
+            // ③ 설명/메타는 그대로
+            const descEl = document.getElementById('f-desc');
+            if (descEl) descEl.innerHTML = d.desc.replace(/\n/g, '<br>');
+            document.getElementById('f-meaning').textContent = d.meaning;
+            document.getElementById('f-season').textContent = d.season;
+            document.getElementById('f-color').textContent = d.color;
+            document.getElementById('f-scent').textContent = d.scent;
             document.getElementById('f-sym').textContent = d.symbolism;
             document.getElementById('f-emote').textContent = d.emotions;
 
@@ -871,9 +1067,9 @@
             const next = order[(idx + 1) % order.length];
             document.getElementById('f-prev').href = `flower-detail.html?flower=${encodeURIComponent(prev)}`;
             document.getElementById('f-next').href = `flower-detail.html?flower=${encodeURIComponent(next)}`;
-
             document.title = `꽃 카드 상세 - ${d.en}`;
         }
+
 
         (function () {
             const slug = qs('flower'); const data = getData(slug); render(data);
@@ -928,6 +1124,24 @@
             // 로고와 메뉴 각각에 이벤트 바인딩
             if (logo) logo.addEventListener("click", playClickSound);
             menuLinks.forEach(link => link.addEventListener("click", playClickSound));
+        })();
+
+
+    </script>
+    <script>
+        (function fireflies() {
+            const NUM = 20; // 반딧불이 개수
+            const container = document.getElementById('backgroundDecor');
+
+            for (let i = 0; i < NUM; i++) {
+                const f = document.createElement('div');
+                f.className = 'firefly';
+                f.style.left = Math.random() * 100 + 'vw';
+                f.style.top = Math.random() * 100 + 'vh';
+                f.style.animationDelay = (Math.random() * 5) + 's';
+                f.style.animationDuration = (8 + Math.random() * 6) + 's';
+                container.appendChild(f);
+            }
         })();
     </script>
 

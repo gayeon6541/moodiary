@@ -64,9 +64,7 @@
             top: 0;
             z-index: 50;
             height: var(--header-h);
-            background: rgba(255, 255, 255, .9);
             backdrop-filter: blur(6px);
-            border-bottom: 1px solid #eaeaea
         }
 
         .wrap {
@@ -604,6 +602,81 @@
             margin: 4px 0 10px;
             /* 위·아래 간격 축소 */
         }
+
+        /* ✨ 하얀 반딧불이 효과 */
+        .firefly {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.8;
+            box-shadow: 0 0 8px 4px rgba(255, 255, 255, 0.6);
+            animation: fly 10s linear infinite, blink 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes fly {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            25% {
+                transform: translate(50px, -80px) scale(1.2);
+            }
+
+            50% {
+                transform: translate(-60px, -30px) scale(0.9);
+            }
+
+            75% {
+                transform: translate(80px, 60px) scale(1.1);
+            }
+
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 0.3;
+                box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.4);
+            }
+
+            50% {
+                opacity: 1;
+                box-shadow: 0 0 10px 6px rgba(255, 255, 255, 0.9);
+            }
+
+            100% {
+                opacity: 0.2;
+                box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.4);
+            }
+        }
+
+        /* 왼쪽 큰 이미지 영역에 절대배치 기준 주기 */
+        .left .panel-body {
+            position: relative;
+        }
+
+        /* 날씨 배지: 오른쪽 위 고정 */
+        /* 날씨 배지: 오른쪽 위 고정 (크게 + 그림자 제거) */
+        .weather-badge {
+            position: absolute;
+            top: 90px;
+            right: 5px;
+            width: clamp(100px, 10vw, 400px);
+            /* 기존보다 살짝 크게 */
+            height: auto;
+            opacity: 1;
+            pointer-events: none;
+            transition: transform .2s ease, opacity .2s ease;
+        }
+
+        .weather-badge.hide {
+            opacity: 0;
+            transform: translateY(-6px);
+        }
     </style>
 </head>
 
@@ -672,8 +745,7 @@
                             <section class="step-block" id="step-4">
                                 <div class="toolbar"
                                     style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
-                                    <button id="goDiaryBtn" type="button">다이어리로 이동 →</button>
-                                    <button id="saveToday" class="primary" type="button">저장하고 날짜로 돌아가기</button>
+                                    <button id="saveToday" class="primary" type="button">저장하고 다이어리로 돌아가기 ➔</button>
                                 </div>
                             </section>
                         </div>
@@ -852,7 +924,20 @@
 
             // 진행 표시만 업데이트(오른쪽 스텝 꽃 아이콘 등)
             updateProgressUI();
+            // === 날씨 배지 표시/숨김 ===
+            const badge = document.getElementById('weatherBadge');
+            if (badge) {
+                if (state.weather) {
+                    badge.src = imgPath('weather', state.weather.slug); // 예: img/weather/sun.svg
+                    badge.alt = state.weather.label;
+                    badge.classList.remove('hide');
+                } else {
+                    badge.classList.add('hide');
+                }
+            }
+
         }
+
     </script>
 
     <script>
@@ -1002,14 +1087,6 @@
             });
         })();
 
-
-        document.getElementById('goDiaryBtn').addEventListener('click', () => {
-            stampCardTime(dateParam);
-
-            // 1단계: diary-loding.html로 이동
-            window.location.href = "diary-loding.html?next=day";
-        });
-
         (function preloadIfExists() {
             if (freshParam) return;
             const saved = window.moodiaryGetToday(dateParam); if (!saved) return;
@@ -1070,6 +1147,35 @@
             menuLinks.forEach(link => link.addEventListener("click", playClickSound));
         })();
     </script>
+    <script>
+        (function fireflies() {
+            const NUM = 20; // 반딧불이 개수
+            const container = document.getElementById('backgroundDecor');
+
+            for (let i = 0; i < NUM; i++) {
+                const f = document.createElement('div');
+                f.className = 'firefly';
+                f.style.left = Math.random() * 100 + 'vw';
+                f.style.top = Math.random() * 100 + 'vh';
+                f.style.animationDelay = (Math.random() * 5) + 's';
+                f.style.animationDuration = (8 + Math.random() * 6) + 's';
+                container.appendChild(f);
+            }
+        })();
+    </script>
+    <script>
+        // 왼쪽 패널의 이미지 영역에 날씨 배지 img를 하나 만들어 붙임
+        (function mountWeatherBadge() {
+            const holder = document.querySelector('.left .panel .panel-body');
+            if (!holder) return;
+            const img = document.createElement('img');
+            img.id = 'weatherBadge';
+            img.className = 'weather-badge hide';
+            img.alt = '';
+            holder.appendChild(img);
+        })();
+    </script>
+
 
 </body>
 

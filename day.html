@@ -367,11 +367,12 @@
             text-align: center;
             font-size: 12px;
             color: #888;
-            margin-top: 4px;
-            /* 위쪽 간격 살짝만 */
-            margin-bottom: 0;
-            /* 아래쪽 여백 완전히 제거 */
+            margin-top: 20px;
+            /* 위쪽 여백 늘림 */
+            margin-bottom: -30px;
+            /* 아래쪽 여백 줄임 */
         }
+
 
         .mark-flower {
             position: absolute;
@@ -1570,15 +1571,26 @@
                 position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
                 padding:16px; display:flex; flex-direction:column; gap:10px;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <strong>QR</strong>
+                            <span style="font-weight:400;">QR</span>
                             <button id="qrClose" class="btn">닫기</button>
                         </div>
+
                         <div id="qrCanvasWrap"
-                            style="display:grid; place-items:center; min-height:220px; border:0.5px solid #111;"></div>
+                            style="display:grid; place-items:center; min-height:220px; border:0.5px solid #111; padding:12px 0;">
+                        </div>
                         <div style="font-size:12px; color:#777;">링크:</div>
-                        <input id="qrLink" type="text" readonly
-                            style="width:100%; border:0.5px solid #111; padding:8px;">
-                        <div style="font-size:12px; color:#2878b4;">휴대폰 카메라로 QR을 스캔 → 링크 열기 → 이미지 길게 눌러 “사진 저장”.</div>
+
+                        <!-- ⬇️ 입력 + 복사 버튼 한 줄 -->
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <input id="qrLink" type="text" readonly
+                                style="flex:1; border:0.5px solid #111; padding:8px;">
+                            <button id="qrCopy" type="button" class="btn">복사</button>
+                        </div>
+                        <div style="font-size:12px; color:#2878b4;">휴대폰 카메라로 QR을 스캔 → 링크 열기 → "이미지 저장"을 눌러 사진을 저장.</div>
+                        <!-- 복사 완료 토스트 -->
+                        <div id="qrCopyToast" style="font-size:12px; color:#2878b4; display:none;">
+                            복사했어요 ✓
+                        </div>
                     </div>
                 </div>
 
@@ -4568,11 +4580,12 @@
     <!-- QR 모달 -->
     <div id="qrModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:9999;">
         <div style="width:min(520px,92vw); background:#fff; border:0.5px solid #111; 
-                position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); 
-                padding:16px; display:flex; flex-direction:column; gap:10px;">
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    padding:32px 16px; display:flex; flex-direction:column; gap:10px;">
+
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <strong>QR</strong>
-                <button id="qrClose" class="btn">닫기</button>
+                <button id="qrClose" class="btn">X</button>
             </div>
             <div id="qrCanvasWrap" style="display:grid; place-items:center; min-height:220px; border:0.5px solid #111;">
             </div>
@@ -5395,6 +5408,38 @@
 
                 // 6) QR 사용 가능 여부 재평가(강제 비활성 유지)
                 refreshQR(dateStr);
+            });
+        })();
+    </script>
+    <script>
+        (function () {
+            const copyBtn = document.getElementById('qrCopy');
+            const linkInput = document.getElementById('qrLink');
+            const toast = document.getElementById('qrCopyToast');
+
+            if (!copyBtn || !linkInput) return;
+
+            function showToast() {
+                if (!toast) return;
+                toast.style.display = 'block';
+                clearTimeout(showToast._t);
+                showToast._t = setTimeout(() => toast.style.display = 'none', 1200);
+            }
+
+            copyBtn.addEventListener('click', async () => {
+                const url = (linkInput.value || '').trim();
+                if (!url) return;
+
+                try {
+                    // 최신 브라우저
+                    await navigator.clipboard.writeText(url);
+                    showToast();
+                } catch (e) {
+                    // 폴백 (일부 브라우저)
+                    linkInput.select();
+                    document.execCommand && document.execCommand('copy');
+                    showToast();
+                }
             });
         })();
     </script>

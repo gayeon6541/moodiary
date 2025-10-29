@@ -17,18 +17,24 @@
         }
 
         header {
-            padding: 10px 14px;
-            border-bottom: 1px solid #eee;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            /* 세로 가운데 정렬 */
+            min-height: 100vh;
+            /* 화면 전체 높이 기준으로 가운데 정렬 */
             padding: 14px;
-            display: grid;
+            box-sizing: border-box;
             gap: 14px;
         }
+
 
         #canvas {
             position: relative;
@@ -65,20 +71,79 @@
             padding: 8px 12px;
             cursor: pointer
         }
+
+        .date-row {
+            text-align: center;
+            margin-top: 6px;
+            margin-bottom: -2px;
+            /* 버튼과 살짝 붙도록 (원하면 0~8px로 조절) */
+        }
+
+        .date-label {
+            font-size: 13px;
+            color: #777;
+        }
+
+        .meta-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: min(92vw, 640px);
+            margin: 0 auto;
+            /* 캔버스와 동일한 중앙 폭 */
+            padding: 4px 0;
+        }
+
+        .meta-date {
+            flex: 0 0 auto;
+            font-size: 13px;
+            color: #777;
+            min-width: 80px;
+            /* 날짜 영역 폭 고정(가변 원하면 제거) */
+        }
+
+        .meta-desc {
+            flex: 1 1 auto;
+            text-align: center;
+            font-size: 13px;
+            color: #555;
+            white-space: nowrap;
+            /* 한 줄 유지 */
+            overflow: hidden;
+            /* 길면 말줄임 */
+            text-overflow: ellipsis;
+            padding: 4px 6px;
+        }
+
+        .meta-save {
+            margin-left: auto;
+            /* 오른쪽 끝으로 밀기 */
+            flex: 0 0 auto;
+        }
+
+        @media (max-width:360px) {
+
+            .meta-date,
+            .meta-desc {
+                font-size: 12px;
+            }
+        }
     </style>
 </head>
 
 <body>
-    <header>
-        <strong>공유된 정원 보기</strong>
-        <div id="dateLabel" style="font-size:13px; color:#777">—</div>
-    </header>
+    <header aria-label="top-bar"></header>
     <main>
+        <!-- 캔버스 -->
         <div id="canvas" aria-label="공유 정원"></div>
-        <div class="actions">
-            <button class="btn" id="btnSave">이미지로 저장</button>
+
+        <!-- 한 줄 메타 바: [날짜 | 설명 | 저장] -->
+        <div class="meta-bar">
+            <div id="dateLabel" class="meta-date">—</div>
+            <div id="descLabel" class="meta-desc">"이미지 저장" 버튼을 눌러 이미지를 저장하세요.</div>
+            <button class="btn meta-save" id="btnSave">이미지로 저장</button>
         </div>
-        <div class="hint">이미지를 길게 눌러 저장하거나, “이미지로 저장”을 눌러 캡처하세요.</div>
+
     </main>
 
     <!-- html2canvas (이미지 저장용) -->
