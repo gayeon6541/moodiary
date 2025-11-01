@@ -2399,6 +2399,60 @@
             });
         })();
     </script>
+    <script>
+        // 히어로 오브젝트 상태 복구 함수
+        function restoreHeroStage() {
+            // 1) 모든 히어로 이미지류를 보이게 + transform 초기화
+            gsap.set([
+                "#clouds img",
+                "#butterflies img",
+                "#stars img",
+                "#flowerRow img",
+                "#grassRow img",
+                ".fences-side img"
+            ], {
+                opacity: 1,
+                clearProps: "x,y,scale,rotation,transform" // 이전 애니메이션 변형값 제거
+            });
+
+            // 2) 메인 타이틀은 항상 보이게
+            gsap.set("#centerTitle", { opacity: 1 });
+
+            // 3) 배경 흰색 상태면 제거 (히어로 톤 유지)
+            document.body.classList.remove("hero-white");
+        }
+
+        // 스크롤로 splash가 다시 보일 때 복구
+        gsap.registerPlugin(ScrollTrigger);
+        ScrollTrigger.create({
+            trigger: ".splash",
+            start: "top top",
+            end: "bottom top",
+            onEnter: restoreHeroStage,     // 처음 진입 시
+            onEnterBack: restoreHeroStage  // 아래로 갔다가 다시 올라올 때
+        });
+
+        // 탭을 오래 두었다가 돌아오는 경우를 대비해 리프레시 & 복구
+        window.addEventListener("visibilitychange", () => {
+            if (!document.hidden) {
+                ScrollTrigger.refresh();
+                // splash가 화면 상단 근처면 즉시 복구
+                const splash = document.querySelector(".splash");
+                if (splash) {
+                    const rect = splash.getBoundingClientRect();
+                    if (rect.top <= 0 && rect.bottom >= 0) restoreHeroStage();
+                }
+            }
+        });
+
+        // 뒤로가기 캐시(bfcache) 복귀 대비
+        window.addEventListener("pageshow", (e) => {
+            if (e.persisted) {
+                ScrollTrigger.refresh();
+                restoreHeroStage();
+            }
+        });
+    </script>
 
 
 
