@@ -417,7 +417,7 @@
             border: none;
             outline: none;
             width: 100%;
-            font-size: 15px;
+            font-size: 14px;
             background: transparent
         }
 
@@ -676,6 +676,61 @@
             opacity: 0;
             transform: translateY(-6px);
         }
+
+        /* === 버튼 폰트 크기 살짝 줄이기 === */
+        button,
+        .btn {
+            font-size: 13px;
+            /* 기존보다 약간 작게 */
+            letter-spacing: 0.2px;
+        }
+
+        .sound button {
+            font-size: 13px;
+            /* 상단 Sound 버튼도 함께 줄임 */
+        }
+
+        /* === 선택칸(감정 키워드 / 날씨) 폰트 크기 조정 === */
+        .chip {
+            font-size: 14px;
+            /* 기존보다 작게 */
+            letter-spacing: 0.2px;
+            padding: 8px 10px;
+            /* 폰트 줄어든 만큼 패딩도 살짝 줄임 */
+            color: #5a5a5a;
+        }
+
+        .chip.active {
+            font-size: 14px;
+            /* 선택된 것도 동일하게 유지 */
+            color: #ffffff;
+        }
+
+        /* === chip hover 시 색 반전 효과 === */
+        .chip:hover {
+            background: #000;
+            color: #fff;
+            border-color: #000;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, .08);
+        }
+
+        /* active 상태일 때 hover해도 동일하게 유지 */
+        .chip.active:hover {
+            background: #000;
+            color: #fff;
+            border-color: #000;
+        }
+
+        /* === 저장하기 버튼만 살짝 아래로 내리기 === */
+        #saveToday {
+            margin-top: 30px;
+            /* 버튼만 아래로 내림 */
+        }
+
+        #stepsScroll {
+            margin-top: 20px;
+        }
     </style>
 </head>
 
@@ -744,7 +799,7 @@
                             <section class="step-block" id="step-4">
                                 <div class="toolbar"
                                     style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
-                                    <button id="saveToday" class="primary" type="button">저장하고 다이어리로 돌아가기 ➔</button>
+                                    <button id="saveToday" class="primary" type="button">저장하고 다이어리로 돌아가기 →</button>
                                 </div>
                             </section>
                         </div>

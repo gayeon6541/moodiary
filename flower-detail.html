@@ -645,6 +645,74 @@
                 box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.4);
             }
         }
+
+        /* === [Fix] bottom scrollbar 제거 === */
+
+        /* 1) 문서 전체에서 가로 스크롤 차단 */
+        html,
+        body {
+            overflow-x: clip;
+            /* 최신 브라우저 권장 */
+            /* 필요하면 overflow-x: hidden; 로 바꿔도 OK */
+        }
+
+        /* 2) 배경 데코가 뷰포트 밖으로 번져서 스크롤 만드는 것 방지 */
+        .background-decor {
+            position: fixed;
+            /* 화면에 고정 */
+            inset: 0;
+            /* 전체 덮기 */
+            overflow: hidden;
+            /* 내부 효과 잘라내기 */
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 3) 중앙 book 섹션에서 레이아웃 넘침 잘라내기 */
+        .hero {
+            overflow: clip;
+            /* 또는 overflow: hidden; */
+        }
+
+        /* 4) 낮은 해상도/좁은 폭에서 좌우 translate로 넘침 나오는 경우 방지 */
+        @media (max-width: 1200px) {
+            .session.left {
+                transform: none;
+            }
+
+            .session.right {
+                transform: none;
+            }
+        }
+
+        /* === 꽃 설명 & 각 항목 설명 폰트 축소 === */
+        .desc {
+            font-size: 14px;
+            /* 기본 약 16px → 줄임 */
+            line-height: 1.5;
+            /* 줄 간격 살짝 줄이기 */
+            font-weight: 400;
+        }
+
+        .meta dd {
+            font-size: 14px;
+            /* 항목 설명 폰트 축소 */
+            line-height: 1.4;
+            font-weight: 300;
+        }
+
+        .meta dt {
+            font-size: 15px;
+            font-weight: 500;
+            /* "꽃말", "계절" 등 제목도 살짝 줄이기 */
+        }
+
+        /* === 목록 / 이전 / 다음 버튼 폰트 크기 조정 === */
+        .nav-rows .btn {
+            font-size: 13px;
+            font-weight: 400;
+            letter-spacing: 0.2px;
+        }
     </style>
 </head>
 
