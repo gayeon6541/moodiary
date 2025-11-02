@@ -1493,7 +1493,7 @@
                         <section class="panel desc-area">
                             <div class="panel-h">
                                 <span>Flower Card</span>
-                                <button class="btn" id="editTodayBtn">오늘기록 수정하기</button>
+                                <button class="btn" id="editTodayBtn">오늘기록 수정하기 →</button>
                             </div>
                             <div class="panel-b">
                                 <div class="desc-wrap">
@@ -1520,15 +1520,15 @@
                     <!-- 오른쪽: Garden Editor (그대로) -->
                     <section class="panel editor-area">
                         <div class="panel-h">
-                            <span>배경, 꽃, 소품을 클릭해 나만의 감정 공간을 꾸며보세요.</span>
+                            <span>배경, 꽃, 소품을 클릭해 정원을 만들고, "캡처 저장" 버튼을 눌러주세요.</span>
                             <div class="toolbar">
                                 <div style="display:flex;gap:8px">
                                     <button class="btn" id="btnClear">비우기</button>
                                     <button class="btn" id="btnDeselect">선택 해제</button>
                                 </div>
                                 <div style="display:flex;gap:8px">
-                                    <button class="btn" id="btnCapture">캡처 저장</button>
-                                    <button class="btn" id="btnQR">QR</button>
+                                    <button class="btn" id="btnCapture">캡처 저장 →</button>
+                                    <button class="btn" id="btnQR">QR 만들기 →</button>
                                 </div>
                             </div>
                         </div>
@@ -1593,6 +1593,25 @@
                         </div>
                     </div>
                 </div>
+                <!-- ✅ 캡처 완료: QR 유도 모달 -->
+                <div id="afterCaptureModal"
+                    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:10000;">
+                    <div style="width:min(520px,92vw); background:#fff; border:0.5px solid #111;
+                position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+                padding:16px; display:flex; flex-direction:column; gap:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <strong style="font-weight:600;">정원이 저장됐어요.</strong>
+                            <button type="button" id="afterCapClose" class="btn">X</button>
+                        </div>
+                        <p style="margin:0; color:#444; font-size:14px; line-height:1.6;">
+                            방금 저장한 정원을 휴대폰 QR로 만들어 열어보세요.
+                        </p>
+                        <div style="display:flex; gap:8px; justify-content:flex-end;">
+                            <button type="button" id="afterCapGoQR" class="btn">QR 만들기 →</button>
+                        </div>
+                    </div>
+                </div>
+
 
             </main>
         </section>
@@ -2587,6 +2606,7 @@
                         /* 기존 로직 유지: 달력 표시/토스트 등 */
                         markCalendarAsCaptured(dateStr);
                         if (window.updateLastCaptureUI) updateLastCaptureUI(dateStr);
+                        openAfterCaptureModal(); // ✅ 새 모달로 대체
                     } catch (err) {
                         console.error(err);
                         alert('캡처 저장 중 문제가 발생했어요.');
@@ -2595,7 +2615,7 @@
                         const canvasBox = $('#canvas');
                         canvasBox?.removeAttribute('data-capturing');
                         const cursor = document.getElementById('cursor');
-                        if (cursor) cursor.style.display = prevCursorDisp || '';
+                        if (!isClearing) openAfterCaptureModal(); // 비우기 중이 아닐 때만 모달 표시
                     }
                 }
             });
@@ -5060,6 +5080,21 @@
                 setTimeout(refreshQRByBadge, 300);
             }
 
+            // “캡처 저장 완료” 즉시 활성화 (모달 닫고 새로 눌러도 계속 됨)
+            document.addEventListener('moodiary:capture-saved', (e) => {
+                const dateStr = (e?.detail?.dateStr) ||
+                    (document.getElementById('dateBadge')?.textContent || '').trim();
+                updateQRAvailability(dateStr);
+            });
+
+            // 비활성일 때 클릭 차단(안전장치)
+            btnQR?.addEventListener('click', (ev) => {
+                if (btnQR.getAttribute('aria-disabled') === 'true') {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    return false;
+                }
+            }, true);
         })();
     </script>
 
@@ -5315,6 +5350,7 @@
             const canvas = document.getElementById('canvas');
 
             if (!btnClear || !canvas) return;
+            let isClearing = false; // 비우기 중인지 체크
 
             // 한 줄 함수: 두 버튼 동시에 비활성
             function disableActions() {
@@ -5369,6 +5405,7 @@
             // ✅ 비우기: “동시에” 처리
             btnClear.addEventListener('click', () => {
                 const dateStr = currentDateStr();
+                isClearing = true; // 비우기 중 표시
 
                 // 0) 먼저 두 버튼을 같은 프레임에서 즉시 비활성(동시성 보장)
                 disableActions();
@@ -5392,6 +5429,8 @@
 
                 // 6) QR 사용 가능 여부 재평가(강제 비활성 유지)
                 refreshQR(dateStr);
+                setTimeout(() => { isClearing = false; }, 400); // 잠시 후 해제
+
             });
         })();
     </script>
@@ -5429,73 +5468,42 @@
     </script>
     <script>
         (function () {
-            const btnQR = document.getElementById('btnQR');
+            const $ = (q, r = document) => r.querySelector(q);
 
-            // 비활성일 때는 클릭 무시 (이미 CSS aria-disabled 처리와 동일)
-            btnQR?.addEventListener('click', (ev) => {
-                if (btnQR.getAttribute('aria-disabled') === 'true') {
-                    ev.preventDefault();
-                    ev.stopPropagation();
-                    return false;
-                }
-            }, true);
+            function openAfterCaptureModal() {
+                const m = $('#afterCaptureModal');
+                if (!m) return;
+                m.style.display = 'block';
 
-            // ✅ QR 버튼 → 즉시 모달
-            btnQR?.addEventListener('click', async () => {
-                try {
-                    const dataUrl = await captureGardenAsDataURL(); // 오늘 날짜 저장본 읽기
-                    const link = await uploadTempImage(dataUrl);    // 임시 링크 발급
-                    showQR(link);                                   // QR 모달 즉시 오픈
-                } catch (e) {
-                    console.error(e);
-                    // 필요시 조용히 실패 처리 or 가벼운 토스트로 전환 가능
-                    // alert('저장된 캡처가 없어요. 먼저 "캡처 저장"을 해주세요.'); // 알림을 쓰려면 이 줄 주석 해제
-                }
-            }, false);
-        })();
-    </script>
-    <script>
-        document.getElementById('btnCapture').addEventListener('click', async () => {
-            const btnCapture = document.getElementById('btnCapture');
-            const canvasEl = document.getElementById('canvas');
-            const dateStr = document.getElementById('dateBadge').textContent.trim();
-            if (!canvasEl) return;
-
-            btnCapture.setAttribute('aria-disabled', 'true');
-            canvasEl.dataset.capturing = '1';
-
-            try {
-                const canvas = await html2canvas(canvasEl, { useCORS: true, scale: 2 });
-                const dataURL = canvas.toDataURL('image/png');
-                localStorage.setItem(`garden_capture_${dateStr}`, dataURL);
-                canvasEl.dataset.capturing = '0';
-                btnCapture.removeAttribute('aria-disabled');
-
-                // ✅ 캡처 성공 시 QR 모달 바로 표시
-                const qrModal = document.getElementById('qrModal');
-                const qrWrap = document.getElementById('qrCanvasWrap');
-                const qrLink = document.getElementById('qrLink');
-                qrWrap.innerHTML = '';
-
-                // QR 코드 생성 (qrcode.js 필요)
-                const url = `${location.origin}/view.html?date=${encodeURIComponent(dateStr)}`;
-                qrLink.value = url;
-                new QRCode(qrWrap, { text: url, width: 180, height: 180 });
-
-                qrModal.style.display = 'block'; // ✅ 바로 띄우기
-
-            } catch (e) {
-                console.error('캡처 실패', e);
-                canvasEl.dataset.capturing = '0';
-                btnCapture.removeAttribute('aria-disabled');
-                alert('캡처 중 오류가 발생했어요.');
+                // 도구막대의 기존 QR 버튼 라벨을 "QR 만들러가기"로 변경
+                const btnQR = $('#btnQR');
+                if (btnQR) btnQR.textContent = 'QR 만들기 →';
             }
-        });
 
-        // 닫기 버튼
-        document.getElementById('qrClose').addEventListener('click', () => {
-            document.getElementById('qrModal').style.display = 'none';
-        });
+            function closeAfterCaptureModal() {
+                const m = document.getElementById('afterCaptureModal');
+                if (m) m.style.display = 'none';
+            }
+
+            // 닫기
+            document.getElementById('afterCapClose')?.addEventListener('click', closeAfterCaptureModal);
+
+            // "QR 만들러가기" → 기존 QR 버튼과 완전 동일하게 동작
+            document.getElementById('afterCapGoQR')?.addEventListener('click', () => {
+                closeAfterCaptureModal();
+                document.getElementById('btnQR')?.click(); // ← 기존 QR 버튼 클릭과 동일
+            });
+
+            // 안전망: 캡처 저장 이벤트가 발생하면 자동으로 모달 띄우기
+            document.addEventListener('moodiary:capture-saved', () => {
+                // 저장 직후 바로 QR 만들 수 있도록 모달 표시
+                if (!isClearing) openAfterCaptureModal();
+            });
+
+            // 필요하면 전역으로도 노출
+            window.openAfterCaptureModal = openAfterCaptureModal;
+            window.closeAfterCaptureModal = closeAfterCaptureModal;
+        })();
     </script>
 
 
