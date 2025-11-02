@@ -2587,7 +2587,6 @@
                         /* 기존 로직 유지: 달력 표시/토스트 등 */
                         markCalendarAsCaptured(dateStr);
                         if (window.updateLastCaptureUI) updateLastCaptureUI(dateStr);
-                        alert('달력에 기록되었습니다. 캡처한 정원을 큐알로 저장하세요.');
                     } catch (err) {
                         console.error(err);
                         alert('캡처 저장 중 문제가 발생했어요.');
@@ -5061,21 +5060,6 @@
                 setTimeout(refreshQRByBadge, 300);
             }
 
-            // “캡처 저장 완료” 즉시 활성화 (모달 닫고 새로 눌러도 계속 됨)
-            document.addEventListener('moodiary:capture-saved', (e) => {
-                const dateStr = (e?.detail?.dateStr) ||
-                    (document.getElementById('dateBadge')?.textContent || '').trim();
-                updateQRAvailability(dateStr);
-            });
-
-            // 비활성일 때 클릭 차단(안전장치)
-            btnQR?.addEventListener('click', (ev) => {
-                if (btnQR.getAttribute('aria-disabled') === 'true') {
-                    ev.preventDefault();
-                    ev.stopPropagation();
-                    return false;
-                }
-            }, true);
         })();
     </script>
 
@@ -5442,6 +5426,76 @@
                 }
             });
         })();
+    </script>
+    <script>
+        (function () {
+            const btnQR = document.getElementById('btnQR');
+
+            // 비활성일 때는 클릭 무시 (이미 CSS aria-disabled 처리와 동일)
+            btnQR?.addEventListener('click', (ev) => {
+                if (btnQR.getAttribute('aria-disabled') === 'true') {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    return false;
+                }
+            }, true);
+
+            // ✅ QR 버튼 → 즉시 모달
+            btnQR?.addEventListener('click', async () => {
+                try {
+                    const dataUrl = await captureGardenAsDataURL(); // 오늘 날짜 저장본 읽기
+                    const link = await uploadTempImage(dataUrl);    // 임시 링크 발급
+                    showQR(link);                                   // QR 모달 즉시 오픈
+                } catch (e) {
+                    console.error(e);
+                    // 필요시 조용히 실패 처리 or 가벼운 토스트로 전환 가능
+                    // alert('저장된 캡처가 없어요. 먼저 "캡처 저장"을 해주세요.'); // 알림을 쓰려면 이 줄 주석 해제
+                }
+            }, false);
+        })();
+    </script>
+    <script>
+        document.getElementById('btnCapture').addEventListener('click', async () => {
+            const btnCapture = document.getElementById('btnCapture');
+            const canvasEl = document.getElementById('canvas');
+            const dateStr = document.getElementById('dateBadge').textContent.trim();
+            if (!canvasEl) return;
+
+            btnCapture.setAttribute('aria-disabled', 'true');
+            canvasEl.dataset.capturing = '1';
+
+            try {
+                const canvas = await html2canvas(canvasEl, { useCORS: true, scale: 2 });
+                const dataURL = canvas.toDataURL('image/png');
+                localStorage.setItem(`garden_capture_${dateStr}`, dataURL);
+                canvasEl.dataset.capturing = '0';
+                btnCapture.removeAttribute('aria-disabled');
+
+                // ✅ 캡처 성공 시 QR 모달 바로 표시
+                const qrModal = document.getElementById('qrModal');
+                const qrWrap = document.getElementById('qrCanvasWrap');
+                const qrLink = document.getElementById('qrLink');
+                qrWrap.innerHTML = '';
+
+                // QR 코드 생성 (qrcode.js 필요)
+                const url = `${location.origin}/view.html?date=${encodeURIComponent(dateStr)}`;
+                qrLink.value = url;
+                new QRCode(qrWrap, { text: url, width: 180, height: 180 });
+
+                qrModal.style.display = 'block'; // ✅ 바로 띄우기
+
+            } catch (e) {
+                console.error('캡처 실패', e);
+                canvasEl.dataset.capturing = '0';
+                btnCapture.removeAttribute('aria-disabled');
+                alert('캡처 중 오류가 발생했어요.');
+            }
+        });
+
+        // 닫기 버튼
+        document.getElementById('qrClose').addEventListener('click', () => {
+            document.getElementById('qrModal').style.display = 'none';
+        });
     </script>
 
 
