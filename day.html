@@ -4286,6 +4286,7 @@
             });
         })();
         btnCapture.addEventListener('click', async () => {
+            deselect();
             // ✿ 커서 잠시 보이게
             document.body.style.cursor = 'default';
             document.getElementById('cursor').style.display = 'none';
@@ -4310,6 +4311,7 @@
             if (!btnCapture || !cursor || !canvasBox) return;
 
             btnCapture.addEventListener('click', async () => {
+                deselect();
                 // 🌸 커서가 사라지지 않도록 항상 보이게 설정
                 cursor.style.display = 'grid';
                 cursor.style.opacity = '1';
@@ -4522,6 +4524,8 @@
         }
 
         btnCapture.addEventListener('click', async () => {
+            deselect();
+
             document.body.style.cursor = 'default';
             canvasBox.setAttribute('data-capturing', '1');
 

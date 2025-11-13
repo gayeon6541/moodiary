@@ -1292,9 +1292,8 @@
         #centerTitle {
             position: absolute;
             left: 50%;
-            top: 45%;
-            /* ✅ 살짝 위로 올림 (기존 50% → 46%) */
-            transform: translate(-50%, -50%);
+            top: clamp(100px, 26vh, 180px);
+            transform: translateX(-50%);
             margin: 0;
             white-space: nowrap;
             text-align: center;
