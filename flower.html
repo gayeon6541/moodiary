@@ -17,7 +17,7 @@
             --muted: #666;
             --bg: #fff;
             --header-h: 72px;
-            /* index와 동일 */
+
             --gap: 16px;
             --side: clamp(18px, 3.8vw, 48px);
             --card-b: #111;
@@ -44,11 +44,11 @@
             color: var(--ink);
             font-family: Pretendard, system-ui, -apple-system, BlinkMacSystemFont, Inter, sans-serif;
             line-height: 1.55;
-            /* flower 페이지에서는 커스텀 커서가 없으므로 cursor: none 은 적용하지 않음 */
-            /* 고정 헤더 높이만큼 패딩 */
+
+
         }
 
-        /* ===== Header (index와 동일 스타일) ===== */
+
         header.site {
             position: sticky;
             top: 0;
@@ -155,7 +155,7 @@
             color: #fff;
         }
 
-        /* ===== Page wrapper ===== */
+
         .page {
             width: 100%;
             max-width: 1800px;
@@ -181,7 +181,7 @@
             margin: 0 0 6px;
         }
 
-        /* ===== CircularGallery (flower 기존 유지) ===== */
+
         .circular-wrap {
             background: #fff;
             border-radius: 8px;
@@ -231,7 +231,7 @@
             height: auto;
             display: block;
             object-fit: contain;
-            /* 안전하게 비율 유지 */
+
         }
 
 
@@ -243,7 +243,7 @@
             font-size: clamp(16px, 3.6vw, 22px) !important;
             color: #111 !important;
             padding: 6px 8px !important;
-            /* 수정: 여백 줄임 */
+
             text-align: center;
         }
 
@@ -260,7 +260,7 @@
             border: 1px solid #e1e1e1;
         }
 
-        /* (선택) 하단 스크롤바 */
+
         .bottom-scroll {
             width: min(21000px, 100%);
             margin: 10px auto 0;
@@ -291,7 +291,7 @@
             cursor: pointer;
         }
 
-        /* Responsive: index 헤더 그리드와 조화 */
+
         @media(max-width:640px) {
             .bar {
                 grid-template-columns: 110px 1fr auto auto;
@@ -447,7 +447,7 @@
                             await audio.play();
                             setBtn(true);
                             fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 500);
-                        } catch { /* no-op */ }
+                        } catch { }
                         finally {
                             window.removeEventListener('pointerdown', unlock, { once: true });
                         }
@@ -499,7 +499,7 @@
                 }
             });
         })();
-        /* ===== CircularGallery (flower 기존 인터랙션) ===== */
+
         (function () {
             const root = document.getElementById('circularGallery');
             if (!root) return;

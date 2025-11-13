@@ -60,7 +60,7 @@
             cursor: none;
         }
 
-        /* Header */
+        
         header.site {
             position: sticky;
             top: 0;
@@ -165,7 +165,7 @@
             color: #fff
         }
 
-        /* Splash */
+        
         .splash {
             height: calc(100vh - var(--header-h));
             padding: 0 var(--side) var(--side);
@@ -197,21 +197,21 @@
             margin: 0;
         }
 
-        /* 사진 전체가 보이게: crop 방지 */
+        
         .splash .photo img {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            /* 기존: cover */
+            
             object-position: bottom;
         }
 
-        /* 오른쪽 사진 칼럼을 약간 더 키우기 */
+        
         .splash {
             grid-template-columns: minmax(0, 1fr) clamp(260px, 28vw, 520px);
         }
 
-        /* 카드/타일 이미지도 꽉 차게(이미 잘리지는 않지만 살짝 더 키움) */
+        
         .img img,
         .fcard .img img {
             max-width: 100%;
@@ -219,7 +219,7 @@
         }
 
 
-        /* Sections */
+        
         .section {
             max-width: 100%;
             margin: 200px auto;
@@ -275,7 +275,7 @@
             border-bottom: 1px solid #111
         }
 
-        /* 소개 */
+        
         .site-blurb {
             max-width: 100%;
             padding: clamp(80px, 18vw, 100px) var(--side) clamp(60px, 8vw, 100px);
@@ -311,7 +311,7 @@
             text-align: center;
         }
 
-        /* 카드/타일 */
+        
         .gallery {
             display: grid;
             gap: var(--gap);
@@ -360,7 +360,7 @@
             color: #333
         }
 
-        /* Flower marquee */
+        
         .marquee {
             overflow: hidden;
             border: 1px solid #111;
@@ -425,7 +425,7 @@
             }
         }
 
-        /* ===== Calendar: diary.html 스타일에 맞춘 스킨 (기능은 index의 JS 유지) ===== */
+        
         .calendar {
             background: #fff;
             border-radius: 0;
@@ -446,7 +446,7 @@
 
         }
 
-        /* 주중 헤더/날짜 그리드: 기존 구조(#calGrid)에 gap을 주고, 각 칸은 1px 라인 */
+        
         .cal-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -504,7 +504,7 @@
             color: #222;
         }
 
-        /* 하단 범례(옵션) */
+        
         .cal-foot {
             display: flex;
             justify-content: space-between;
@@ -515,7 +515,7 @@
             border-top: 1px solid #111;
         }
 
-        /* footer */
+        
         footer {
             padding: 56px var(--side);
             text-align: center;
@@ -523,7 +523,7 @@
             margin-top: 20px
         }
 
-        /* Flower cursor */
+        
         .flower-cursor {
             position: fixed;
             left: 0;
@@ -554,7 +554,7 @@
             font-size: 26px
         }
 
-        /* PixelCard */
+        
         .pixel-card {
             position: relative;
             overflow: hidden;
@@ -589,7 +589,7 @@
             opacity: 1
         }
 
-        /* Steps/Mapping (keep) */
+        
         .steps {
             display: grid;
             gap: var(--gap);
@@ -684,7 +684,7 @@
             color: #fff
         }
 
-        /* reveal + scroll-float */
+        
         .reveal,
         [data-reveal] {
             opacity: 0;
@@ -720,7 +720,7 @@
             display: inline-block;
         }
 
-        /* Responsive */
+        
         @media(max-width:640px) {
             .bar {
                 grid-template-columns: 110px 1fr auto auto
@@ -755,7 +755,7 @@
             }
         }
 
-        /* CircularGallery (hooks) */
+        
         .circular-wrap {
             background: #fff;
             overflow: hidden;
@@ -856,7 +856,7 @@
             font-weight: 500;
         }
 
-        /* MOODIARY outline font */
+        
         #heroTitle {
             color: transparent;
             -webkit-text-stroke: 2px #111;
@@ -871,7 +871,7 @@
             -webkit-text-stroke: 1px #111;
         }
 
-        /* Flower marquee (cards) */
+        
         .flower-marquee {
             overflow: hidden;
             background: #fff;
@@ -955,107 +955,107 @@
             text-align: center;
         }
 
-        /* 오늘 날짜 칸 하이라이트 (연한 노랑) */
+        
         .cal-grid .day.today {
             background: var(--pill-bg);
             outline: none;
             box-shadow: 0 3px 8px rgba(0, 0, 0, .08);
-            /* 🔸 그림자 살짝 연하고 작게 */
+            
             transition: box-shadow 0.3s ease;
-            /* 부드럽게 변화 */
+            
         }
 
-        /* 선택 + 오늘 겹칠 때도 노랑 유지 (선택 테두리 강화) */
+        
         .cal-grid .day.today.selected {
             background: var(--pill-bg);
             box-shadow: inset 0 0 0 2px #111;
         }
 
-        /* 오늘 칸에 상시 부드러운 drop-shadow 주기 */
+        
         .cal-grid .day.today:hover {
             box-shadow: 0 5px 12px rgba(0, 0, 0, .12);
-            /* 🔸 hover시 은은한 강조 */
+            
         }
 
 
-        /* 오늘 칸 hover 시만 더 강조하고 싶다면 */
+        
         .cal-grid .day.today:hover {
             box-shadow: 0 10px 24px rgba(0, 0, 0, .16);
         }
 
-        /* 오늘+선택 상태도 동일 톤 유지 */
+        
         .cal-grid .day.today.selected {
             box-shadow: inset 0 0 0 2px #111,
-                /* 내부 테두리 유지 */
+                
                 0 6px 16px rgba(0, 0, 0, .12);
-            /* 바깥 그림자 함께 */
+            
         }
 
-        /* DIARY 소개문 안의 링크를 줄 오른쪽 끝으로 */
+        
         #sec-diary>p {
             display: flex;
             align-items: baseline;
             gap: 12px;
-            /* 텍스트와 링크 사이 여백 */
+            
         }
 
         #sec-diary>p a.small {
             margin-left: auto;
-            /* 오른쪽 끝으로 밀기 */
+            
         }
 
-        /* 소개 글을 좌-우 2열로: 왼쪽(텍스트), 오른쪽(링크) */
+        
         #sec-diary>p,
         #sec-flower>div:first-of-type {
             display: grid;
             grid-template-columns: 1fr auto;
-            /* 1열=가변 텍스트, 2열=링크 */
+            
             align-items: baseline;
-            /* 같은 줄 위아래 기준 맞춤 */
+            
             column-gap: 12px;
             width: 100%;
             max-width: none !important;
-            /* p/div에 걸린 inline max-width(78ch/90ch) 무시 */
+            
         }
 
-        /* 링크를 컨테이너 오른쪽 끝(섹션 padding 안쪽)으로 고정 */
+        
         #sec-diary>p a.small,
         #sec-flower>div:first-of-type a.small {
             justify-self: end;
-            /* 그리드 우측 정렬 */
+            
             white-space: nowrap;
-            /* 'diary →'가 줄바꿈되지 않게 */
+            
         }
 
-        /* 1) FLOWER: 텍스트(왼쪽) + 링크(오른쪽 끝)로 2열 그리드 */
+        
         #sec-flower .section-head+div {
             display: grid;
             grid-template-columns: 1fr auto;
-            /* 왼쪽=가변 텍스트, 오른쪽=링크 */
+            
             align-items: baseline;
             column-gap: 12px;
             width: 100%;
             max-width: none !important;
-            /* 인라인 max-width(90ch) 무시 */
+            
         }
 
         #sec-flower .section-head+div a.small {
             justify-self: end;
-            /* 컨테이너 오른쪽 끝으로 */
+            
             white-space: nowrap;
         }
 
-        /* 2) 링크 보라색(visited) 제거 + 톤 통일 */
+        
         a.small,
         a.small:link,
         a.small:visited,
         a.small:hover,
         a.small:active {
             color: rgb(99, 99, 99) !important;
-            /* 보라색 visited 제거 */
+            
             text-decoration: none;
             border-bottom: 1px solid rgb(100, 100, 100);
-            /* diary 톤과 맞춤 */
+            
         }
 
         /* (선택) diary 문장도 같은 방식으로 오른쪽 끝 고정하고 싶을 때
@@ -1074,27 +1074,27 @@
             white-space: nowrap;
         }
 
-        /* 회색(이번 달 아님) 칸 스타일 */
+        
         .cal-grid .day.muted {
             background: #f2f2f2;
-            /* 연한 회색 */
+            
             border-color: #111;
             color: #bbb;
             cursor: default;
         }
 
-        /* 회색 칸은 숫자 숨김(혹시 스팬이 있더라도) */
+        
         .cal-grid .day.muted span {
             display: none;
         }
 
-        /* TODAY: 영상 아래에만 여백 주기 */
+        
         #sec-today .today-video {
             margin-bottom: 240px;
-            /* 화면 크기에 맞춰 16~40px */
+            
         }
 
-        /* 혹시 기존에 twocol에 여백이 있었다면 제거(중복 간격 방지) */
+        
         #sec-today .twocol {
             margin-top: 0 !important;
         }
@@ -1105,12 +1105,12 @@
             display: block;
         }
 
-        /* 꽃 마키 트랙 여백/간격 축소 */
+        
         #sec-flower .flower-track {
             gap: 12px;
-            /* 기존 gap보다 축소 */
+            
             padding: 10px 5px;
-            /* 위아래/좌우 패딩도 줄임 */
+            
         }
 
         .flower-card {
@@ -1128,21 +1128,21 @@
         }
 
 
-        /* 호버 시 은은하게 부웅 */
+        
         .flower-card:hover img {
             transform: translateY(-10px) scale(1.08);
             box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
-            /* 은은한 그림자 */
+            
         }
 
-        /* 히어로 무대 전체 */
+        
         .hero-stage {
             position: absolute;
             inset: 0;
             overflow: hidden;
         }
 
-        /* 울타리 */
+        
         #fence {
             position: absolute;
             left: 0;
@@ -1163,7 +1163,7 @@
             clip-path: polygon(50% 0, 100% 14px, 100% 100%, 0 100%, 0 14px);
         }
 
-        /* 중앙 타이틀 */
+        
         #centerTitle {
             position: absolute;
             left: 50%;
@@ -1180,7 +1180,7 @@
             white-space: nowrap;
         }
 
-        /* 꽃 팝업 */
+        
         #flowerBurst {
             position: absolute;
             inset: 0;
@@ -1197,17 +1197,17 @@
             filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .15));
         }
 
-        /* 섹션 “뚜왕” 등장 공통 */
+        
         .thud {
             will-change: transform, opacity;
         }
 
-        /* 배경 기본: 연한 하늘색 */
+        
         body {
             background: #e5f1f9;
         }
 
-        /* 설명: 타이틀 바로 아래, 간격 짧게 */
+        
         #centerDesc {
             position: absolute;
             left: 50%;
@@ -1223,7 +1223,7 @@
             border: 1px solid #111;
         }
 
-        /* 5장의 꽃: 중앙에 약간 벌려 배치, 초기 숨김 */
+        
         #fiveFlowers {
             position: absolute;
             left: 50%;
@@ -1240,14 +1240,14 @@
             filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .15));
         }
 
-        /* 구름: 크게 + SVG 이미지 */
+        
         .cloud {
             position: absolute;
             width: clamp(260px, 22vw, 380px);
             height: auto;
         }
 
-        /* 울타리: 6개(좌3/우3) 크게 */
+        
         .fence-seg {
             position: absolute;
             bottom: 0;
@@ -1256,25 +1256,25 @@
         }
 
 
-        /* 구름: div 대신 svg */
-        /* 구름 크게 */
+        
+        
         .cloud {
             position: absolute;
             width: clamp(260px, 22vw, 380px);
             height: auto;
         }
 
-        /* 울타리 크게 */
+        
         .fence-seg {
             position: absolute;
             bottom: 0;
             width: 360px;
-            /* 기존 80px → 두 배 */
+            
             height: auto;
         }
 
 
-        /* 울타리: svg 이미지 */
+        
         .fence-seg {
             position: absolute;
             bottom: 0;
@@ -1283,16 +1283,16 @@
         }
 
 
-        /* 배경 기본: 연한 하늘색은 기존 유지 */
+        
         body {
             background: #ffffff !important;
         }
 
-        /* ───────────── 중앙 타이틀 위치 수정 ───────────── */
+        
         #centerTitle {
             position: absolute;
             left: 50%;
-            top: clamp(100px, 26vh, 180px);
+            top: clamp(100px, 26vh, 170px);
             transform: translateX(-50%);
             margin: 0;
             white-space: nowrap;
@@ -1306,7 +1306,7 @@
             z-index: 20;
         }
 
-        /* 제목 아래 소개문(짧게) */
+        
         #centerDesc {
             position: absolute;
             left: 50%;
@@ -1321,43 +1321,43 @@
             opacity: 0;
         }
 
-        /* 구름 7: 조금 작게 */
+        
         .cloud {
             position: absolute;
             width: clamp(140px, 12vw, 220px);
             height: auto;
             opacity: .95;
             transform: translateY(-20px);
-            /* ✅ 위로 올리기 */
+            
         }
 
-        /* 잔디 6: 하단 일렬 */
+        
         #grassRow {
             position: absolute;
             left: 50%;
             bottom: 80px;
-            /* ✅ 살짝 내려주기 */
+            
             transform: translateX(-50%);
             display: flex;
             gap: -12px;
-            /* ✅ 서로 겹치도록 음수 gap */
+            
             align-items: flex-end;
         }
 
         #grassRow img {
             height: clamp(130px, 16vw, 180px);
-            /* ✅ 기존보다 조금 더 크게 */
+            
             display: block;
             transform: translateY(12px);
-            /* ✅ 살짝 더 내려주기 */
+            
         }
 
-        /* 꽃 5: 잔디 위(살짝 겹치게), 가운데 촘촘히 */
+        
         #flowerRow {
             position: absolute;
             left: 50%;
             bottom: 100px;
-            /* ✅ 기존 120px → 100px (더 내려옴) */
+            
             transform: translateX(-50%);
             display: flex;
             gap: clamp(10px, 2vw, 18px);
@@ -1371,12 +1371,12 @@
         }
 
 
-        /* 나비 */
-        /* --- 나비 위치 최종 정리 (중복 제거 후 맨 아래에만 두기) --- */
+        
+        
         #butterflies img {
             position: absolute;
             width: clamp(55px, 6vw, 80px);
-            /* ✅ 크기 전체적으로 축소 */
+            
             height: auto;
         }
 
@@ -1397,20 +1397,20 @@
         }
 
 
-        /* 별 (sparkle/star) */
+        
         #stars img {
             position: absolute;
             width: clamp(26px, 3.2vw, 50px);
-            /* 기존 18~28px → 살짝 키움 */
+            
             height: auto;
             opacity: .9;
         }
 
-        /* 울타리: 좌/우 하단 각각 2개 */
+        
         .fences-side {
             position: absolute;
             bottom: -15px;
-            /* ✅ 기존보다 아래 */
+            
             height: auto;
             pointer-events: none;
         }
@@ -1426,20 +1426,20 @@
         .fences-side img {
             position: relative;
             width: clamp(120px, 10vw, 160px);
-            /* 기존보다 축소 */
+            
             height: auto;
             margin: 0 4px;
         }
 
 
-        /* 스크롤 전후 전환에서 배경 흰색으로 전환될 때 부드럽게 */
+        
         body.hero-white {
             transition: background-color .8s ease;
             background: #fff !important;
         }
 
-        /* ===== Z-INDEX LAYER ORDER ===== */
-        /* back → front */
+        
+        
         #clouds {
             position: absolute;
             inset: 0;
@@ -1480,60 +1480,60 @@
             pointer-events: none;
         }
 
-        /* ===== OVERRIDES: hero flowers & grass (append at very end) ===== */
+        
 
-        /* 꽃: 더 아래 + 살짝 더 크게 */
+        
         #flowerRow {
             bottom: 68px !important;
-            /* 기존 100~120px보다 더 내려감 */
+            
             transform: translateX(-50%) !important;
         }
 
         #flowerRow img {
             filter: drop-shadow(0 6px 12px rgba(0, 0, 0, .08)) !important;
-            /* ✅ 섀도우 연하게 */
+            
 
         }
 
-        /* 잔디: 조금 더 크게 + 확실히 겹치기 + 살짝 아래 */
+        
         #grassRow {
             bottom: 72px !important;
-            /* 잔디 줄 전체도 조금 내려줌 */
+            
             gap: 0 !important;
-            /* gap 음수는 무효 -> 0으로 */
+            
         }
 
         #grassRow img {
             height: clamp(150px, 18vw, 210px) !important;
-            /* 크기 업 */
+            
             transform: translateY(16px) !important;
-            /* 시각적으로 더 아래 */
+            
         }
 
-        /* 이웃한 잔디끼리 겹치기: 두 번째부터 왼쪽으로 파고들기 */
+        
         #grassRow img+img {
             margin-left: -18px !important;
         }
 
-        /* === ALIGN GRASS TO FENCE BOTTOM === */
-        /* 울타리 bottom:-15px 에 정확히 맞춤 */
+        
+        
         #grassRow {
             bottom: -15px !important;
-            /* fence와 동일 기준선 */
+            
             transform: translateX(-50%) !important;
             gap: 0 !important;
-            /* 겹치기는 margin으로 처리 */
+            
         }
 
-        /* 잔디 이미지: 기존 아래로 내리던 translateY 제거(정렬 깨짐 방지) */
+        
         #grassRow img {
             height: clamp(150px, 18vw, 210px) !important;
-            /* 크기는 그대로 */
+            
             transform: translateY(0) !important;
-            /* ↓ 보정 제거 */
+            
         }
 
-        /* 인접 잔디끼리 겹치기 유지 */
+        
         #grassRow img+img {
             margin-left: -18px !important;
         }
@@ -1542,12 +1542,12 @@
             display: none !important;
         }
 
-        /* 소개 블록(blurb)도 같이 위로 맞춰줌 */
+        
         #blurbUnderTitle {
             position: absolute;
             left: 50%;
             top: calc(46% + 60px);
-            /* ✅ 타이틀 기준 살짝 아래 */
+            
             transform: translateX(-50%);
             width: min(900px, 90vw);
             margin: 0;
@@ -1557,12 +1557,12 @@
         }
 
 
-        /* site-blurb 뒤에 book.svg 배경 넣기 */
+        
         #blurbUnderTitle {
             position: relative;
-            /* 기준점 */
+            
             z-index: 2;
-            /* 내용이 앞에 */
+            
         }
 
         #blurbUnderTitle::before {
@@ -1571,16 +1571,16 @@
             inset: 0;
             background: url("img/book.svg") no-repeat center/contain;
             opacity: 0.25;
-            /* 연하게 (조절 가능) */
+            
             z-index: -1;
-            /* 내용 뒤로 */
+            
         }
 
         #centerTitle img {
             width: 90vw;
-            /* 화면 너비의 90% */
+            
             max-width: none;
-            /* 최대값 제한 해제 */
+            
             height: auto;
         }
 
@@ -1591,19 +1591,19 @@
             opacity: .9;
         }
 
-        /* 🌸 메인 꽃 5개 크기 살짝 키움 */
+        
         #flowerRow img {
             height: clamp(340px, 34vw, 400px) !important;
-            /* 기존보다 약 15~20% 확대 */
+            
             transform: translateY(28px) scale(1.04) !important;
         }
 
-        /* 🌸 메인 꽃 그림자 제거 */
+        
         #flowerRow img {
             filter: none !important;
-            /* ✅ 그림자 완전 제거 */
+            
             box-shadow: none !important;
-            /* 혹시 잔여 그림자 있을 경우 제거 */
+            
             height: clamp(340px, 34vw, 400px) !important;
             transform: translateY(28px) scale(1.04) !important;
         }
@@ -1848,7 +1848,7 @@
                             await audio.play();
                             setBtn(true);
                             fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 500);
-                        } catch { /* no-op */ }
+                        } catch {  }
                         finally {
                             window.removeEventListener('pointerdown', unlock, { once: true });
                         }
@@ -2031,7 +2031,7 @@
     </script>
 
     <script>
-        /* ===== Flower Infinite Marquee Builder (images only) ===== */
+        
         (function () {
             const track = document.getElementById('flowerTrack');
             if (!track) return;
@@ -2109,7 +2109,7 @@
     <script>
         gsap.registerPlugin(ScrollTrigger);
 
-        /* ===== 0) 요소 깔기 ===== */
+        
         (function buildHero() {
             // 7 clouds (작게 위쪽에 흩뿌리기)
             const clouds = document.getElementById('clouds');
@@ -2202,7 +2202,7 @@
 
         })();
 
-        /* ===== 1) 스크롤 타임라인 ===== */
+        
         const tl = gsap.timeline({
             scrollTrigger: {
                 trigger: ".splash",
@@ -2343,7 +2343,7 @@
 
     </script>
     <script>
-        /* ⭐ 별 위치를 자유롭게 설정할 수 있게 */
+        
         (function setStars() {
             const stars = document.getElementById('stars');
             if (!stars) return;

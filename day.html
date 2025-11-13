@@ -68,12 +68,12 @@
             color: var(--ink);
             font-family: Pretendard, system-ui, -apple-system, BlinkMacSystemFont, Inter, sans-serif;
             line-height: 1.55;
-            /* cursor: none;  ← 이 줄 삭제 또는 주석처리 */
+
         }
 
 
-        /* ===== 헤더 ===== */
-        /* day.html */
+
+
         header.site {
             position: sticky;
             top: 0;
@@ -82,7 +82,7 @@
             background: rgba(255, 255, 255, .9);
             backdrop-filter: blur(6px);
             border-bottom: 1px solid #eaeaea;
-            /* ✅ 추가 */
+
         }
 
         .wrap {
@@ -126,12 +126,12 @@
             }
         }
 
-        /* day.html */
+
         nav.main {
             display: flex;
             justify-content: flex-end;
             gap: 22px;
-            /* ✅ today와 동일 */
+
         }
 
 
@@ -184,7 +184,7 @@
             color: #fff
         }
 
-        /* ===== 메인 그리드 ===== */
+
         main {
             padding: 30px var(--side) 14px;
             min-height: calc(100vh - var(--header-h) - 16px)
@@ -193,7 +193,7 @@
         .grid3 {
             display: grid;
             gap: var(--gap);
-            /* 왼쪽 폭 줄이고 오른쪽을 더 크게 */
+
             grid-template-columns: minmax(360px, 0.9fr) minmax(600px, 1.4fr);
             align-items: stretch;
         }
@@ -206,14 +206,14 @@
             }
         }
 
-        /* 왼쪽: 1:1 레이아웃 (달력 / 카드+설명) */
+
         .left-half {
             display: grid;
             gap: var(--gap);
             grid-template-columns: 1fr 1fr;
-            /* 1 : 1 */
+
             grid-template-rows: 1fr;
-            /* 한 줄 */
+
             grid-template-areas: "cal desc";
             align-items: stretch;
             min-height: 0;
@@ -273,7 +273,7 @@
             transform: translateY(1px)
         }
 
-        /* 미니 캘린더 */
+
         .mini-cal {
             display: grid;
             gap: 10px;
@@ -298,13 +298,13 @@
             flex-wrap: wrap
         }
 
-        /* 달력 꽉차게 수정 */
+
         .week,
         .grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: var(--dcal-gap);
-            /* ← 여기서 반영됨 */
+
             width: 100%;
             max-width: none;
             margin: 0 auto;
@@ -316,9 +316,9 @@
             border: 0.5px solid #111;
             background: transparent;
             aspect-ratio: 1/1;
-            /* 정사각형 */
+
             width: 100%;
-            /* 한 칸을 자동으로 채움 */
+
             cursor: pointer;
             transition: transform .12s ease, box-shadow .12s ease;
             font-size: 0;
@@ -368,9 +368,9 @@
             font-size: 12px;
             color: #888;
             margin-top: 20px;
-            /* 위쪽 여백 늘림 */
+
             margin-bottom: -30px;
-            /* 아래쪽 여백 줄임 */
+
         }
 
 
@@ -391,7 +391,7 @@
             display: none
         }
 
-        /* Card Description 내부 구성 */
+
         .desc-area {
             grid-area: desc
         }
@@ -410,7 +410,7 @@
             white-space: pre-line
         }
 
-        /* ▶ 플라워카드 (Card Description 안으로 이동) */
+
         .card {
             width: min(420px, 100%);
             display: flex;
@@ -438,7 +438,7 @@
             transition: transform .28s ease
         }
 
-        /* 카드엔 소품 숨김 */
+
         .overlay-prop {
             display: none !important
         }
@@ -469,7 +469,7 @@
             letter-spacing: .2px
         }
 
-        /* 오른쪽 에디터 */
+
         .editor-wrap {
             background-color: #fff;
             display: grid;
@@ -529,7 +529,7 @@
             gap: 8px
         }
 
-        /* 배경/소품 썸네일 — 64×64 고정 */
+
         .thumbs {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
@@ -539,7 +539,7 @@
         .thumb {
             width: 64px;
             height: 64px;
-            /* ← 테두리 박스 64×64 고정 */
+
             border: 0.5px solid #111;
             background: #fff;
             padding: 0;
@@ -557,7 +557,7 @@
 
         }
 
-        /* ✿ custom cursor */
+
         .flower-cursor {
             position: fixed;
             left: 0;
@@ -588,7 +588,7 @@
             transform: translate(-50%, -50%) scale(1.06)
         }
 
-        /* 선택/편집 툴 */
+
         .selbox {
             position: absolute;
             pointer-events: none;
@@ -641,15 +641,15 @@
             cursor: grab
         }
 
-        /* 🔸 Mini Calendar Bigger: 셀/간격/텍스트 확대 */
+
         :root {
             --cell: clamp(24px, 3vw, 36px);
             --dcal-gap: 2px;
-            /* 기존 4px → 2px 로 좁힘 */
+
         }
 
 
-        /* 요일 라벨/아이콘 가독성 ↑ */
+
         .week {
             font-size: 12px;
         }
@@ -670,7 +670,7 @@
             bottom: 3px;
         }
 
-        /* 상단 월/년도 타이틀 강조 */
+
         .cal-title {
             font-size: 14px;
         }
@@ -679,7 +679,7 @@
             font-size: 14px;
         }
 
-        /* 좁은 화면에서는 너무 커지지 않도록 안전장치 */
+
         @media (max-width: 640px) {
             :root {
                 --cell: 30px;
@@ -691,11 +691,11 @@
             }
         }
 
-        /* === Mini Calendar 1:1(상/하) 레이아웃 === */
+
         .mini-cal {
             display: grid;
             grid-template-rows: 1fr 1fr;
-            /* 위/아래 정확히 반띵 */
+
             gap: 10px;
             height: 100%;
             min-height: 0;
@@ -704,16 +704,16 @@
         .mini-cal-top {
             display: grid;
             grid-template-rows: auto auto 1fr auto;
-            /* 헤더/요일/그리드/힌트 */
+
             min-height: 0;
         }
 
         .mini-cal-top .grid {
-            /* 달력 그리드가 상단 영역을 꽉 채우며, 행 높이를 자동 균등 */
+
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             grid-auto-rows: 1fr;
-            /* 세로도 영역을 꽉 채우도록 정사각에 최대 근접 */
+
             gap: var(--dcal-gap);
             width: 100%;
             min-height: 0;
@@ -722,18 +722,18 @@
         .mini-cal-top .cell {
             width: 100%;
             aspect-ratio: 1/1;
-            /* 정사각 유지 */
+
         }
 
-        /* === 하단: 기록 요약 === */
+
         .mini-details {
             width: 100%;
             aspect-ratio: 1 / 1;
-            /* 정사각형 */
+
             overflow: auto;
-            /* 내용 많으면 내부 스크롤 */
+
             display: block;
-            /* grid/flex 간섭 방지 */
+
         }
 
         .md-row {
@@ -778,7 +778,7 @@
             display: block;
         }
 
-        /* 페이지는 한 화면 고정, 헤더 높이 제외 */
+
         body {
             overflow: hidden;
         }
@@ -786,12 +786,12 @@
         main {
             min-height: calc(100vh - var(--header-h));
             height: calc(100vh - var(--header-h));
-            /* 세로 딱 맞춤 */
+
             display: flex;
             align-items: center;
-            /* 세로 중앙 */
+
             justify-content: center;
-            /* 가로 중앙 */
+
             padding: 0 var(--side);
         }
 
@@ -803,11 +803,8 @@
         .panel {
             height: 100%;
         }
-
-        /* 에디터/좌측 패널 내부 스크롤은 panel-b에서 처리 */
     </style>
     <style>
-        /* === Scroll Snap 컨테이너 === */
         html,
         body {
             height: 100%;
@@ -817,34 +814,34 @@
             overflow: hidden;
         }
 
-        /* 기존에 숨김 유지 */
 
 
-        /* 세션 1, 세션 2 내용 상단 여백 추가 */
-        /* 1) 섹션 상단 패딩 제거 */
+
+
+
         #snap-diary,
         #snap-day {
             scroll-margin-top: var(--header-h);
-            /* 새로고침 때 헤더만큼 여백 확보 */
+
         }
 
-        /* 세션1 달력 위쪽 여백을 헤더보다 조금 더 확보 */
+
         #snap-diary {
             scroll-margin-top: calc(var(--header-h) + 20px);
-            /* 헤더 높이 + 추가 여백 */
+
         }
 
 
-        /* 2) 스냅 컨테이너가 헤더만큼 위쪽 여백을 인지하도록 */
+
         .snap-viewport {
             scroll-padding-top: var(--header-h);
             scroll-padding-top: var(--header-h);
-            /* 헤더 높이만큼 보정 */
+
         }
 
 
-        /* === diary.html 달력 임베드 전용 네임스페이스 === */
-        /* === diary.html 스타일과 동일하게 적용 === */
+
+
         #diaryEmbed {
             padding: 0 var(--side);
             height: calc(100vh - var(--header-h));
@@ -988,7 +985,7 @@
         }
 
 
-        /* === 세션1 달력 꽉차게 (snap-diary 전용) === */
+
         #snap-diary #diaryEmbed .calendar {
             margin: 0;
             padding: 0;
@@ -999,9 +996,9 @@
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             grid-auto-rows: 1fr;
-            /* 세로 균등 분배 */
+
             gap: 10px;
-            /* 셀 사이 여백 줄임 */
+
             width: 100%;
             height: 100%;
             margin: 0;
@@ -1012,11 +1009,11 @@
             width: 100%;
             height: 100%;
             aspect-ratio: auto;
-            /* 정사각형 강제 해제 */
+
             border: 0.5px solid #111;
         }
 
-        /* 세션1 달력 숫자(span) 위에서 클릭해도 뒤의 .cell이 클릭되게 */
+
         #diaryEmbed .date-number {
             pointer-events: none;
         }
@@ -1035,7 +1032,7 @@
             animation: bounceArrow 1s infinite;
         }
 
-        /* 텍스트 반짝 */
+
         @keyframes blinkText {
 
             0%,
@@ -1048,7 +1045,7 @@
             }
         }
 
-        /* 화살표 위아래 반짝 */
+
         @keyframes bounceArrow {
 
             0%,
@@ -1063,14 +1060,14 @@
             }
         }
 
-        /* 꽃·날씨 2칸 가로 배치 */
+
         .fw-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
         }
 
-        /* 각 컬럼 타이틀 */
+
         .fw-col-title {
             font-weight: 400;
             margin: 0 0 6px 0;
@@ -1087,7 +1084,7 @@
             min-height: 64px;
         }
 
-        /* 배경, 꽃, 날씨, 소품 썸네일 모두 테두리 제거 */
+
         #assetsBg .thumb,
         #assetsFlowerCol .thumb,
         #assetsWeatherCol .thumb,
@@ -1095,13 +1092,13 @@
             border: none !important;
         }
 
-        /* 배경, 꽃, 날씨, 소품 썸네일 호버 시 살짝 확대 */
+
         #assetsBg .thumb img,
         #assetsFlowerCol .thumb img,
         #assetsWeatherCol .thumb img,
         #assetsProps .thumb img {
             transition: transform 0.25s ease;
-            /* 부드러운 전환 */
+
         }
 
         #assetsBg .thumb:hover img,
@@ -1109,10 +1106,10 @@
         #assetsWeatherCol .thumb:hover img,
         #assetsProps .thumb:hover img {
             transform: scale(1.3);
-            /* 10% 확대 */
+
         }
 
-        /* 캡처 순간엔 테두리/선택박스 숨김 */
+
         #canvas[data-capturing="1"] {
             border-color: transparent !important;
         }
@@ -1127,7 +1124,7 @@
             opacity: 1 !important;
         }
 
-        /* 선택박스 우상단 X 버튼 */
+
         .handle.h-close {
             right: -26px;
             top: -26px;
@@ -1149,7 +1146,7 @@
             color: #fff;
         }
 
-        /* ==== Memo Area ==== */
+
         .memo-area {
             width: 100%;
             display: flex;
@@ -1202,7 +1199,7 @@
             color: #2878b4;
         }
 
-        /* --- 임시 오버라이드: 세션1 제거 + 한 화면 정렬 --- */
+
         #snap-diary {
             display: none !important;
         }
@@ -1212,23 +1209,23 @@
             min-height: auto !important;
         }
 
-        /* === grid3 세로 중앙 여백 보정 === */
+
         main {
             padding-top: 0 !important;
-            /* 위 여백 제거 */
+
             padding-bottom: 0 !important;
             display: flex !important;
             align-items: center !important;
-            /* 세로 가운데 */
+
             justify-content: center !important;
-            /* 가로 가운데 */
+
             min-height: calc(100vh - var(--header-h)) !important;
             height: calc(100vh - var(--header-h)) !important;
         }
 
         .grid3 {
             margin: 0 auto;
-            /* 좌우 중앙 */
+
         }
 
         .snap-viewport {
@@ -1238,7 +1235,7 @@
         .snap-viewport {
             scroll-snap-type: none !important;
             overflow-y: hidden !important;
-            /* 필요시 auto 대신 hidden */
+
         }
 
         .snap-section {
@@ -1246,18 +1243,18 @@
             min-height: auto !important;
         }
 
-        /* 미니 달력 날짜 숫자 보이게 */
+
         .cal-area .date-number {
             position: absolute;
             top: 6px;
             left: 6px;
             font-size: 12px;
-            /* 부모 .cell의 font-size:0 무시 */
+
             font-weight: 400;
             color: rgb(188, 188, 188);
             line-height: 1;
             pointer-events: none;
-            /* 숫자 위 클릭도 셀로 전달 */
+
         }
 
         #cardTitle {
@@ -1349,32 +1346,32 @@
             object-fit: contain
         }
 
-        /* 🔤 미니달력 월/연도 스타일 수정 */
+
         #mname {
             font-size: 1.8rem;
-            /* 숫자달 크기 */
+
             font-weight: 600;
-            /* 얇게 */
+
             letter-spacing: 1px;
-            /* 글자 간격 살짝 */
+
             color: #333;
-            /* 어두운 회색 */
+
         }
 
         #ytext {
             font-size: 1rem;
-            /* 영어 달 풀네임 크기 */
+
             font-weight: 100;
-            /* 얇게 */
+
             letter-spacing: 1px;
             color: #666;
-            /* 살짝 밝은 회색톤 */
+
         }
 
         .cal-area {
             position: sticky;
             top: var(--header-h);
-            /* 헤더 바로 아래에 고정 */
+
             align-self: start;
             z-index: 20;
             background: #fff;
@@ -1393,14 +1390,14 @@
         }
 
 
-        /* 캡처 저장 비활성: 50% 투명 + 클릭 불가 */
+
         #btnCapture[aria-disabled="true"] {
             opacity: 0.5;
             pointer-events: none;
             transition: opacity .2s ease;
         }
 
-        /* 활성: 100% 불투명 */
+
         #btnCapture:not([aria-disabled="true"]) {
             opacity: 1;
         }
@@ -1695,7 +1692,7 @@
                             await audio.play();
                             setBtn(true);
                             fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 500);
-                        } catch { /* no-op */ }
+                        } catch { }
                         finally {
                             window.removeEventListener('pointerdown', unlock, { once: true });
                         }
@@ -1762,7 +1759,7 @@
     <!-- today 연동 + 설명 매핑 -->
     <script>
         const EN_NAME = { 'hydrangea': 'HYDRANGEA', 'babybreath': "BABY'S BREATH", 'lavender': 'LAVENDER', 'freesia': 'FREESIA', 'daisy': 'DAISY', 'white-lily': 'WHITE LILY', 'lilac': 'LILAC', 'white-tulip': 'WHITE TULIP', 'sunflower': 'SUNFLOWER', 'peony': 'PEONY', 'forgetmenot': 'FORGET-ME-NOT', 'lotus': 'LOTUS' };
-        const FLOWER_DESC = { /* 기존 매핑 유지 */ };
+        const FLOWER_DESC = {};
         const $ = (q, r = document) => r.querySelector(q); const $$ = (q, r = document) => Array.from(r.querySelectorAll(q));
         const z = n => String(n).padStart(2, '0'); const fmt = d => `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
     </script>
@@ -1917,7 +1914,7 @@
 
     </script>
     <script>
-        /* ==== 날짜별 메모 저장소 ==== */
+
         const MEMO_KEY_PREFIX = 'moodiary_memo_';
         const memoEls = {
             input: null, saveBtn: null, clearBtn: null, toast: null, dateLabel: null
@@ -1930,7 +1927,7 @@
         }
         function hasMemo(dateStr) { return !!localStorage.getItem(memoKey(dateStr)); }
 
-        /* UI 업데이트 */
+
         function updateMemoUI(dateStr) {
             if (!memoEls.input) {
                 memoEls.input = document.getElementById('memoInput');
@@ -2131,7 +2128,7 @@
             // 최후 폴백: 그대로 반환(깨져보이면 파일이 없다는 뜻)
             return img || '';
         }
-        /* ① 소품/날씨/꽃별 초기 크기 맵 */
+
         const SIZE_MAP = {
             // 소품
             'grass.svg': 160,
@@ -2152,7 +2149,7 @@
             'daisy': 200,
         };
 
-        /* ② 파일명/슬러그에서 키 뽑기 */
+
         function keyFromSrc(src) {
             if (!src) return '';
             // .../folder/name.svg → name.svg
@@ -2162,7 +2159,7 @@
             return name;
         }
 
-        /* ③ 초기 크기 계산(없으면 fallback 사용) */
+
         function getInitWidth(srcOrSlug, fallback = 120) {
             const key = keyFromSrc(srcOrSlug) || String(srcOrSlug);
             if (SIZE_MAP[key] != null) return SIZE_MAP[key];
@@ -2171,7 +2168,7 @@
             return fallback;
         }
 
-        /* ④ addObj 래퍼: 항상 적절한 width로 호출 */
+
         function placeObj(srcOrSlug, fallback = 120) {
             const w = getInitWidth(srcOrSlug, fallback);
             // addObj는 기존 그대로 사용 (옵션 width만 주입)
@@ -2346,14 +2343,14 @@
                 schedulePersist();    // 상태 저장(있으면)
             }
 
-            /* 선택된 게 없어도 동작하도록 키보드 Delete/Backspace 지원(선택사항) */
+
             window.addEventListener('keydown', (e) => {
                 if (e.key === 'Delete' || e.key === 'Backspace') {
                     if (current) { e.preventDefault(); deleteSelected(); }
                 }
             });
 
-            /* 저장 로직: 프로젝트에 이미 저장 함수가 있으면 그것을 우선 호출 */
+
             function schedulePersist() {
                 // 너의 기존 저장 훅이 있으면 그것부터
                 if (typeof window.saveGardenState === 'function') {
@@ -2363,7 +2360,7 @@
                 try { persistStateInline(); } catch { }
             }
 
-            /* 인라인 백업 저장: 현재 캔버스 상태를 localStorage에 저장 */
+
             function persistStateInline() {
                 const STATE_KEY = (date) => `garden_state_${date}`;
                 const dateStr = (document.getElementById('dateBadge')?.textContent || '').trim();
@@ -2508,7 +2505,7 @@
 
     <!-- 캡처 저장 → diary.html 해당 날짜로 이동 -->
     <script>
-        /* ===== 캡처 저장 (꽃/소품 보이도록) ===== */
+
         function markCalendarAsCaptured(dateStr) {
             const calGrid = document.getElementById('calGrid');
             if (!calGrid || !dateStr) return;
@@ -2576,20 +2573,20 @@
                     if (!dateStr) { alert('날짜를 먼저 선택해 주세요.'); return; }
 
                     try {
-                        /* ✅ 1) 캡처 모드 진입: 선택박스/커서 숨김 */
+
                         canvasBox.setAttribute('data-capturing', '1');
                         const cursor = document.getElementById('cursor');
                         const prevCursorDisp = cursor?.style.display;
                         if (cursor) cursor.style.display = 'none';
 
-                        /* ✅ 2) 자식 IMG 모두 로딩 대기 */
+
                         const imgs = Array.from(canvasBox.querySelectorAll('img'));
                         await Promise.all(imgs.map(img => (
                             img.complete ? Promise.resolve() :
                                 new Promise(res => { img.addEventListener('load', res, { once: true }); img.addEventListener('error', res, { once: true }); })
                         )));
 
-                        /* ✅ 3) 살짝 대기(레이아웃 안정화) 후 캡처 */
+
                         await new Promise(r => setTimeout(r, 50));
                         const cvs = await html2canvas(canvasBox, {
                             useCORS: true, allowTaint: false, backgroundColor: null,
@@ -2599,11 +2596,11 @@
                         const dataUrl = cvs.toDataURL('image/png', 0.95);
                         await saveCapture(dataUrl, dateStr);
 
-                        /* ✅ 4) 마지막 캡처 저장 & 이메일 버튼 활성화 */
+
                         window.__lastCapture = { date: dateStr, dataUrl };
                         document.getElementById('btnEmail')?.removeAttribute('disabled');
 
-                        /* 기존 로직 유지: 달력 표시/토스트 등 */
+
                         markCalendarAsCaptured(dateStr);
                         if (window.updateLastCaptureUI) updateLastCaptureUI(dateStr);
                         openAfterCaptureModal(); // ✅ 새 모달로 대체
@@ -2611,7 +2608,7 @@
                         console.error(err);
                         alert('캡처 저장 중 문제가 발생했어요.');
                     } finally {
-                        /* ✅ 5) 캡처 모드 해제 */
+
                         const canvasBox = $('#canvas');
                         canvasBox?.removeAttribute('data-capturing');
                         const cursor = document.getElementById('cursor');
@@ -2666,7 +2663,7 @@
 
     </script>
     <script>
-        /* ==== (A) 도우미 & 기록 구조화: diary.html 로직 이식 ==== */
+
         const asArray = v => Array.isArray(v) ? v : (v == null ? [] : [v]);
         const mergeU = (a, b) => Array.from(new Set([...(a || []), ...(b || [])]));
         const normalize = (x) => {
@@ -2745,7 +2742,7 @@
             return out;
         }
 
-        /* 꽃/소품 칩 아이콘 – diary.html과 동일 경로 우선순위 */
+
         function iconImg(paths, alt, emoji) {
             const box = document.createElement('span');
             const img = document.createElement('img');
@@ -2780,7 +2777,7 @@
             return iconImg(c, name, propEmojiMap[key] || '✨');
         }
 
-        /* 칩 렌더 */
+
         function mountChips(el, arr, type) {
             el.innerHTML = '';
             if (!arr || !arr.length) { el.textContent = '—'; return; }
@@ -2805,7 +2802,7 @@
         }
 
 
-        /* ==== (B) 하단 요약 렌더 ==== */
+
         function renderMiniDetails(dateStr) {
             const data = getDayStructured(dateStr);
             const $id = (x) => document.getElementById(x);
@@ -2823,7 +2820,7 @@
             }
         }
 
-        /* ==== (C) 달력 이벤트에 연결: 날짜 선택/월 이동 시 갱신 ==== */
+
         (function hookMiniDetails() {
             // 초기 선택 날짜 = day.html이 사용하는 selDate / dateBadge를 참고
             const badge = document.getElementById('dateBadge');
@@ -2870,7 +2867,7 @@
     </script>
 
     <script>
-        /* ===== URL → DataURL 변환 ===== */
+
         async function urlToDataURL(url) {
             const res = await fetch(url, { mode: 'cors' });
             const blob = await res.blob();
@@ -3074,16 +3071,16 @@
         })();
     </script>
     <script>
-        /* === 새 오늘기록이 저장된 날짜는, 캔버스를 ‘깨끗하게’ 초기화 === */
 
-        /** 날짜별 fresh-flag 키 */
+
+
         const FRESH_KEY = (date) => `moodiary_fresh_${date}`;
 
-        /** 날짜별 상태/이미지 키 */
+
         const CAPTURE_KEY = (date) => `garden_capture_${date}`;
         const STATE_KEY = (date) => `garden_state_${date}`;
 
-        /** 정원 에디터/사진을 완전 초기화 */
+
         function resetGardenFor(dateStr) {
             const canvas = document.getElementById('canvas');
             if (!dateStr || !canvas) return;
@@ -3111,7 +3108,7 @@
         location.href = `diary.html?date=${encodeURIComponent(dateStr)}&reset=1`;
 
 
-        /** fresh 플래그를 체크해, 있으면 초기화하고 플래그를 지움 */
+
         function checkFreshAndMaybeReset(dateStr) {
             const k = FRESH_KEY(dateStr);
             if (localStorage.getItem(k) === '1') {
@@ -3120,7 +3117,7 @@
             }
         }
 
-        /* 초기 진입 시점 */
+
         document.addEventListener('DOMContentLoaded', () => {
             const badge = document.getElementById('dateBadge');
             const initialDate = (badge?.textContent || '').trim() ||
@@ -3128,7 +3125,7 @@
             if (initialDate) checkFreshAndMaybeReset(initialDate);
         });
 
-        /* 날짜가 바뀔 때도 체크: 기존 loadForDate를 래핑 */
+
         (function hookLoadForDate() {
             if (!window.loadForDate) return;
             const orig = window.loadForDate;
@@ -3148,7 +3145,7 @@
 
     </script>
     <script>
-        /* 다이어리 입장 시 초기화 플래그가 있으면 해당 날짜 정원사진/상태 삭제 */
+
         (function resetDiaryIfRequested() {
             const nz = n => String(n).padStart(2, '0');
             const fmt = d => `${d.getFullYear()}-${nz(d.getMonth() + 1)}-${nz(d.getDate())}`;
@@ -3394,7 +3391,7 @@
 
 
     <script>
-        /** 헤더여백 제어: 기본/클릭모드 전환 */
+
         (function () {
             const BASE = 'var(--header-h)';
             const EXTRA = 'calc(var(--header-h) + 20px)'; // 여백 늘리고 싶으면 여기 숫자만 조절
@@ -3497,7 +3494,6 @@
     </script>
     <!-- === [ADD-OVERRIDE] 세션1 아이콘 동기화 + 스냅 여백 일원화 === -->
     <style>
-        /* 세션1(임베디드 달력)도 세션2처럼 코너 아이콘로 보이게 오버라이드 */
         #diaryEmbed .thumb-box {
             position: absolute !important;
             right: 3px !important;
@@ -3512,18 +3508,13 @@
             font-size: 16px !important;
             line-height: 1 !important;
             color: var(--gray) !important;
-            /* 기본 회색 */
+
         }
 
         #diaryEmbed .thumb-box.orange {
             color: var(--orange) !important;
-            /* 캡처(사진) 있으면 오렌지 */
+
         }
-
-
-        /* 점(.) 숨김 */
-
-        /* 스냅 여백: 기본값은 CSS에서 지정되어 있으나, 아래 JS에서 최종 일원화 */
     </style>
 
     <script>
@@ -3592,7 +3583,6 @@
     <!-- === [/ADD-OVERRIDE] 끝 === -->
     <!-- === [ADD-OVERRIDE] 세션1 아이콘 ✿ 동기화 + 스냅/스크롤 보정 === -->
     <style>
-        /* (안전장치) 세션1에도 mark-flower 스타일이 적용되도록 크기만 살짝 통일 */
         #diaryEmbed .mark-flower {
             position: absolute;
             right: 3px;
@@ -3790,13 +3780,12 @@
     </div>
 
     <style>
-        /* 편집 박스 UI */
         .edit-box {
             position: absolute;
             border: 2px dashed rgba(0, 0, 0, 0.35);
             border-radius: 10px;
             pointer-events: none;
-            /* 클릭은 대상 오브젝트가 받게 */
+
             z-index: 9999;
             box-sizing: border-box;
             outline: 1px solid rgba(255, 255, 255, 0.6);
@@ -3812,7 +3801,7 @@
             border-radius: 50%;
             transform: translate(-50%, -50%);
             pointer-events: auto;
-            /* 핸들은 직접 잡을 수 있게 */
+
             cursor: nwse-resize;
         }
 
@@ -3849,17 +3838,17 @@
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
             cursor: pointer;
             pointer-events: auto;
-            /* 삭제 버튼은 클릭 가능 */
+
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
         }
 
-        /* Stage 안 오브젝트 공통 클래스 (필수) */
+
         #gardenStage .g-obj {
             position: absolute;
-            /* 자유 배치 가정 */
+
             transform-origin: center center;
             user-select: none;
             cursor: pointer;
@@ -4146,7 +4135,7 @@
     </script>
 
     <script>
-        /* === 메일 모달 + EML/PNG === */
+
         (function () {
             const M = document.getElementById('emailModal');
             const btn = document.getElementById('btnEmail');
@@ -4406,7 +4395,7 @@
     </script>
 
     <script>
-        /* ===== 캡처 → 미리보기 모달로, 자동 다운로드 금지 ===== */
+
 
         // 유틸: 모달 열고/닫기
         function openEmailModal() {
@@ -4545,7 +4534,7 @@
         });
     </script>
     <script>
-        /** 이메일 전송 처리 (프론트) */
+
         // emSendNow 버튼 클릭 시 동작
         document.getElementById('emSendNow')?.addEventListener('click', async () => {
             try {
@@ -4798,7 +4787,7 @@
     <!-- QR 코드 생성 라이브러리 -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
     <script>
-        /** ============ 유틸 ============ **/
+
         function dataURLToBlob(dataUrl) {
             const arr = dataUrl.split(','), mime = arr[0].match(/:(.*?);/)[1];
             const bstr = atob(arr[1]); let n = bstr.length; const u8 = new Uint8Array(n);
@@ -4822,7 +4811,7 @@
                         return raw.capture;
                     }
                 }
-            } catch (e) { /* ignore */ }
+            } catch (e) { }
 
             // 3) localStorage 백업 키 검사
             const lsKey = `garden_capture_${dateStr}`;
@@ -4983,7 +4972,7 @@
     <!-- LZ-String: 긴 상태를 URL 해시에 압축 -->
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js" crossorigin></script>
     <script>
-        /** 캔버스 상태 → JSON */
+
         function collectGardenState() {
             const canvas = document.getElementById('canvas');
             if (!canvas) return { bg: null, items: [] };
@@ -5194,7 +5183,7 @@
 
     </script>
     <script>
-        /** ============ 유틸 ============ **/
+
         function dataURLToBlob(dataUrl) {
             const arr = dataUrl.split(','), mime = arr[0].match(/:(.*?);/)[1];
             const bstr = atob(arr[1]); let n = bstr.length; const u8 = new Uint8Array(n);
@@ -5231,7 +5220,7 @@
             }
         }
 
-        /** "캡처 저장" 버튼 클릭 시 */
+
         document.getElementById('btnCapture')?.addEventListener('click', async () => {
             try {
                 const dataUrl = await captureEditorExact();

@@ -48,7 +48,7 @@
             overflow: hidden;
         }
 
-        /* 전체 한 화면, 스크롤 제거 */
+
 
         body {
             background: url("img/bg.svg") center center / cover no-repeat fixed, var(--bg);
@@ -179,7 +179,7 @@
             height: calc(100vh - var(--header-h));
             position: relative;
 
-            /* 한 장짜리 배경 */
+
             background: url("img/book.svg") center/100% 100% no-repeat;
         }
 
@@ -191,7 +191,7 @@
             }
         }
 
-        /* 패널 공통 */
+
         .panel {
             display: flex;
             flex-direction: column;
@@ -223,24 +223,24 @@
             position: relative;
             height: calc(100% - 100px);
             margin: 50px 100px;
-            /* 상하 50px, 좌우 70px */
+
             display: flex;
             flex-direction: column;
             padding: 24px;
-            /* 좌우만 24px */
+
             background-size: 100% 100%;
             background-position: center;
             background-repeat: no-repeat;
         }
 
 
-        /* LEFT — 카드 프리뷰 영역 */
+
         .left .panel-body {
             overflow: hidden;
             padding-inline: 24px;
         }
 
-        /* 카드+설명 묶음을 중앙 정렬 */
+
         .preview {
             position: absolute;
             top: 50%;
@@ -257,14 +257,14 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            /* 카드와 설명을 함께 중앙 정렬 */
+
             gap: 20px;
-            /* 카드와 설명 간격 */
+
         }
 
         .card {
             margin-top: 0%;
-            /* 원하는 만큼 조절 */
+
             width: min(340px, 90%);
             aspect-ratio: 2/3;
             border: var(--border-w) solid var(--line);
@@ -277,7 +277,7 @@
             border-radius: 0;
             position: relative;
             z-index: 2;
-            /* 설명보다 위에 고정 */
+
         }
 
         .card-art {
@@ -293,9 +293,9 @@
         #flowerImg {
             display: none;
             max-width: 50vw;
-            /* 화면 절반 정도 크기 */
+
             max-height: 70vh;
-            /* 세로 크게 */
+
             object-fit: contain;
             position: absolute;
             top: 50%;
@@ -350,11 +350,11 @@
             letter-spacing: .2px
         }
 
-        /* 설명 박스는 absolute 제거 → 자연스럽게 카드 밑에 위치 */
+
         .desc-box {
             position: static;
             margin-top: 16px;
-            /* 카드와 간격 */
+
             width: min(440px, 92%);
             max-height: 120px;
             overflow: auto;
@@ -372,7 +372,7 @@
             white-space: pre-line
         }
 
-        /* RIGHT — 스텝 묶음 중앙 정렬 */
+
         #stepsScroll {
             position: absolute;
             top: 50%;
@@ -473,7 +473,7 @@
             transform: translateY(1px)
         }
 
-        /* 커서/배경 */
+
         .flower-cursor {
             position: fixed;
             left: 0;
@@ -511,7 +511,7 @@
             z-index: -1
         }
 
-        /* 왼쪽 패널을 그리드 중앙 정렬 컨테이너로 */
+
         .left .panel-body {
             display: grid;
             place-items: center;
@@ -519,12 +519,12 @@
             padding: 0;
         }
 
-        /* 이미지: 왼쪽 그리드 안에서 '살짝 크게' */
+
         #flowerImg {
             display: none;
-            /* 선택 전 숨김 */
+
             position: static;
-            /* absolute 제거 */
+
             transform: none;
 
             max-width: clamp(360px, 46vw, 620px);
@@ -538,28 +538,28 @@
             display: block;
         }
 
-        /* === [PATCH] today.html 북/그리드 살짝 축소 & 가운데 정렬 일치 === */
 
-        /* 메인 페이지를 정확히 화면 중앙에 정렬 */
+
+
         .page {
             display: grid;
             place-items: center;
             padding: 0;
         }
 
-        /* 한 장짜리 북 배경을 살짝 줄이고, 전체 그리드 폭도 축소 */
+
         .grid-2 {
             width: min(1300px, 92vw);
-            /* 전체 그리드 폭 ↓ */
+
             height: calc(100vh - var(--header-h));
             margin: 0 auto;
             background-position: center;
             background-size: 100% 100%;
-            /* 북 사진을 “살짝” 작게 */
+
             background-repeat: no-repeat;
         }
 
-        /* 안쪽 패널 여백도 그리드 축소에 맞춰 조금만 컴팩트하게 */
+
         .left .panel,
         .right .panel {
             height: calc(100% - clamp(70px, 12vh, 110px));
@@ -567,42 +567,42 @@
             padding: clamp(14px, 2vw, 22px);
         }
 
-        /* 왼쪽 큰 꽃 이미지도 살짝 축소(전체 축소감 유지) */
+
         #flowerImg {
             max-width: clamp(300px, 42vw, 560px);
             max-height: clamp(280px, 54vh, 640px);
         }
 
-        /* 우측 스텝 영역 폭도 약간만 줄여 균형 맞춤 */
+
         #stepsScroll {
             width: min(760px, 88%);
         }
 
-        /* 오른쪽 패널 세션 간격 및 전체 레이아웃 조정 */
 
-        /* 오른쪽 전체 영역 위아래 마진 */
+
+
         #stepsScroll {
             padding-block: 20px;
-            /* 위·아래 여백 */
+
             gap: 6px;
-            /* 세션 사이 간격 줄임 */
+
         }
 
-        /* 각 세션 블록 간격 줄이기 */
+
         .step-block {
             margin: 6px 0;
-            /* 기존 10px → 6px */
+
             padding: 14px;
-            /* 패딩도 살짝 줄여서 납작하게 */
+
         }
 
-        /* 텍스트 타이틀 간격도 조금 압축 */
+
         .s1-title {
             margin: 4px 0 10px;
-            /* 위·아래 간격 축소 */
+
         }
 
-        /* ✨ 하얀 반딧불이 효과 */
+
         .firefly {
             position: absolute;
             width: 6px;
@@ -653,19 +653,19 @@
             }
         }
 
-        /* 왼쪽 큰 이미지 영역에 절대배치 기준 주기 */
+
         .left .panel-body {
             position: relative;
         }
 
-        /* 날씨 배지: 오른쪽 위 고정 */
-        /* 날씨 배지: 오른쪽 위 고정 (크게 + 그림자 제거) */
+
+
         .weather-badge {
             position: absolute;
             top: 90px;
             right: 5px;
             width: clamp(100px, 10vw, 400px);
-            /* 기존보다 살짝 크게 */
+
             height: auto;
             opacity: 1;
             pointer-events: none;
@@ -677,36 +677,36 @@
             transform: translateY(-6px);
         }
 
-        /* === 버튼 폰트 크기 살짝 줄이기 === */
+
         button,
         .btn {
             font-size: 13px;
-            /* 기존보다 약간 작게 */
+
             letter-spacing: 0.2px;
         }
 
         .sound button {
             font-size: 13px;
-            /* 상단 Sound 버튼도 함께 줄임 */
+
         }
 
-        /* === 선택칸(감정 키워드 / 날씨) 폰트 크기 조정 === */
+
         .chip {
             font-size: 14px;
-            /* 기존보다 작게 */
+
             letter-spacing: 0.2px;
             padding: 8px 10px;
-            /* 폰트 줄어든 만큼 패딩도 살짝 줄임 */
+
             color: #5a5a5a;
         }
 
         .chip.active {
             font-size: 14px;
-            /* 선택된 것도 동일하게 유지 */
+
             color: #ffffff;
         }
 
-        /* === chip hover 시 색 반전 효과 === */
+
         .chip:hover {
             background: #000;
             color: #fff;
@@ -715,17 +715,17 @@
             box-shadow: 0 10px 24px rgba(0, 0, 0, .08);
         }
 
-        /* active 상태일 때 hover해도 동일하게 유지 */
+
         .chip.active:hover {
             background: #000;
             color: #fff;
             border-color: #000;
         }
 
-        /* === 저장하기 버튼만 살짝 아래로 내리기 === */
+
         #saveToday {
             margin-top: 30px;
-            /* 버튼만 아래로 내림 */
+
         }
 
         #stepsScroll {
@@ -889,7 +889,7 @@
                             await audio.play();
                             setBtn(true);
                             fadeTo(parseFloat(localStorage.getItem(VOL_KEY) || '0.35'), 500);
-                        } catch { /* no-op */ }
+                        } catch { }
                         finally {
                             window.removeEventListener('pointerdown', unlock, { once: true });
                         }
@@ -944,7 +944,7 @@
         function stampCardTime(date) { const store = readTodayStore(); const prev = store[date] || { date }; prev.cardCreatedAt = Date.now(); store[date] = prev; writeTodayStore(store); }
 
 
-        /* 첫 진입 fresh */
+
         (function () {
             function z(n) { return String(n).padStart(2, '0') }
             function fmt(d) { return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}` }
@@ -955,7 +955,7 @@
             }
         })();
 
-        /* 우측 상단 시각 텍스트(요소 없으면 스킵) */
+
         (function () {
             const el = document.getElementById('nowTime'); if (!el) return;
             function tick() { const now = new Date(); el.textContent = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }); }
@@ -1157,7 +1157,7 @@
 
         renderKeywords(); renderWeather(); refreshPreview(); updateProgressUI();
 
-        /* ✿ custom cursor */
+
         (function () {
             const c = document.createElement('div'); c.className = 'flower-cursor'; c.textContent = '✿'; document.body.appendChild(c);
             let x = 0, y = 0, tx = 0, ty = 0;

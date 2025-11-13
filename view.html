@@ -27,9 +27,9 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            /* 세로 가운데 정렬 */
+
             min-height: 100vh;
-            /* 화면 전체 높이 기준으로 가운데 정렬 */
+
             padding: 14px;
             box-sizing: border-box;
             gap: 14px;
@@ -76,7 +76,7 @@
             text-align: center;
             margin-top: 6px;
             margin-bottom: -2px;
-            /* 버튼과 살짝 붙도록 (원하면 0~8px로 조절) */
+
         }
 
         .date-label {
@@ -90,7 +90,7 @@
             gap: 8px;
             width: min(92vw, 640px);
             margin: 0 auto;
-            /* 캔버스와 동일한 중앙 폭 */
+
             padding: 4px 0;
         }
 
@@ -99,7 +99,7 @@
             font-size: 13px;
             color: #777;
             min-width: 80px;
-            /* 날짜 영역 폭 고정(가변 원하면 제거) */
+
         }
 
         .meta-desc {
@@ -108,16 +108,16 @@
             font-size: 13px;
             color: #555;
             white-space: nowrap;
-            /* 한 줄 유지 */
+
             overflow: hidden;
-            /* 길면 말줄임 */
+
             text-overflow: ellipsis;
             padding: 4px 6px;
         }
 
         .meta-save {
             margin-left: auto;
-            /* 오른쪽 끝으로 밀기 */
+
             flex: 0 0 auto;
         }
 
@@ -222,7 +222,7 @@
                     try {
                         const bg = await drawImage(state.bg);
                         drawCover(ctx, bg, W, H);
-                    } catch (e) { /* 배경 로드 실패 시 투명배경 */ }
+                    } catch (e) { }
                 } else {
                     // 배경이 없으면 흰 배경
                     ctx.fillStyle = '#ffffff';
