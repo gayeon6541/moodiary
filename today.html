@@ -1118,11 +1118,14 @@
                 const u = new URL(location.href);
                 const date = u.searchParams.get('date') || fmt(new Date());
 
+                // 🔥 index.html에서 보낸 text 받아오기
+                const urlText = u.searchParams.get('text') || '';
+
                 // 2) today 데이터 저장 (기존 로직 유지)
                 const store = JSON.parse(localStorage.getItem('moodiary_today') || '{}');
                 store[date] = {
                     date,
-                    oneLine: state.mood,
+                    oneLine: urlText || state.mood,   // 🔥 여기만 바뀐 부분!
                     feeling: state.keyword?.label,
                     flowers: state.keyword
                         ? [{ slug: state.keyword.slug, name: state.keyword.flower, img: `img/flowers2/${state.keyword.slug}2.svg` }]
@@ -1132,13 +1135,15 @@
                 };
                 localStorage.setItem('moodiary_today', JSON.stringify(store));
 
-                // 3) ✅ day.html이 반드시 "해당 날짜" 초기화하도록 신호 남기기
-                localStorage.setItem(`moodiary_reset_diary_${date}`, '1'); // day.html이 읽어서 캡처/상태 삭제
-                localStorage.setItem(`moodiary_fresh_${date}`, '1');       // (보조 안전장치)
+                // 3) reset
+                localStorage.setItem(`moodiary_reset_diary_${date}`, '1');
+                localStorage.setItem(`moodiary_fresh_${date}`, '1');
 
-                // 4) ✅ reset=1 파라미터도 함께 전달 (둘 중 하나만으로도 동작하지만 확실하게!)
+                // 4) 이동
                 location.href = `diary-loding.html?date=${encodeURIComponent(date)}&reset=1#snap-day`;
+
             });
+
         })();
 
         (function preloadIfExists() {
